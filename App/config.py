@@ -1,8 +1,8 @@
 import os
 import torch
 from dotenv import load_dotenv
+from langchain.llms import HuggingFacePipeline  # Updated import
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.llms import HuggingFaceLLM
 from transformers import pipeline
 
 # Set the number of threads for CPU
@@ -16,7 +16,6 @@ EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multili
 
 # LLM configuration
 LLM_CONFIG = {
-    "model_name": MODEL_NAME,
     "max_length": 150,
     "temperature": 0.7,
     "top_k": 50,
@@ -35,15 +34,17 @@ def get_llm():
     try:
         device = 0 if torch.cuda.is_available() else -1  # 0 for GPU, -1 for CPU
         hf_pipeline = pipeline("text-generation", model=MODEL_NAME, device=device)
-        return HuggingFaceLLM(pipeline=hf_pipeline, **LLM_CONFIG)
+        return HuggingFacePipeline(pipeline=hf_pipeline, **LLM_CONFIG)
     except Exception as e:
         print(f"Error loading the model: {e}")
+        return None
 
 # Function to initialize the embeddings
 def get_embeddings():
-    return HuggingFaceEmbeddings(**EMBEDDING_CONFIG)
-
-
-
+    try:
+        return HuggingFaceEmbeddings(**EMBEDDING_CONFIG)
+    except Exception as e:
+        print(f"Error loading embeddings: {e}")
+        return None
 
 
