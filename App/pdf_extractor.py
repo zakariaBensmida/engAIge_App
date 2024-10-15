@@ -1,4 +1,3 @@
-# app/pdf_extractor.py
 import fitz  # PyMuPDF
 import re
 
@@ -104,5 +103,16 @@ def extract_main_content(pdf_path: str) -> str:
     
     # Combine all content
     combined_content = "\n".join([section['content'] for section in extracted_data])
+    
     return combined_content
 
+if __name__ == "__main__":
+    # Path to your PDF file
+    pdf_file_path = "your_pdf_file.pdf"
+    
+    # Extract the content
+    extracted_content = extract_main_content(pdf_file_path)
+    
+    # Print the extracted content
+    print("Extracted content:\n")
+    print(extracted_content)
