@@ -1,12 +1,12 @@
 # app/main.py
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
-from app.models import UploadResponse, QueryRequest, QueryResponse
-from app.pdf_extractor import extract_main_content
-from app.vector_store import VectorStore
-from app.query_handler import QueryHandler
-from app.config import settings
-from app.utils import ensure_directory
+from .models import UploadResponse, QueryRequest, QueryResponse
+from .pdf_extractor import extract_main_content
+from .vector_store import VectorStore
+from .query_handler import QueryHandler
+from .config import settings
+from .utils import ensure_directory
 import os
 
 app = FastAPI(title="LangChain RAG Chatbot (German)")
