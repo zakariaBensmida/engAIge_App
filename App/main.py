@@ -22,13 +22,16 @@ embeddings = get_embeddings()
 ensure_directory(os.getenv("PDF_STORAGE_PATH", "./pdfs"))
 
 # Initialize VectorStore
-vector_store = VectorStore(store_path=os.getenv("VECTOR_STORE_PATH", "./vector_store"), embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2"))
+vector_store = VectorStore(store_path=os.getenv("VECTOR_STORE_PATH", "./vector_store"),
+                           embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2"))
 
 # Initialize QueryHandler with the loaded LLM
 query_handler = QueryHandler(llm=llm)
+
 @app.get("/")
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
 @app.post("/upload", response_model=UploadResponse)
 async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
@@ -41,13 +44,18 @@ async def upload_pdf(file: UploadFile = File(...)):
     # Extract main content from PDF
     try:
         content = extract_main_content(file_location)
+        print(f"Extracted content from {file.filename}: {content}")  # Debugging output
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error extracting PDF content: {e}")
     
     # Add content to vector store
-    texts = content.split('\n')
-    vector_store.add_texts(texts, embeddings=embeddings)
-    vector_store.save_store()
+    try:
+        texts = content.split('\n')
+        vector_store.add_texts(texts, embeddings=embeddings)
+        vector_store.save_store()
+        print(f"Added {len(texts)} texts to vector store from {file.filename}.")  # Debugging output
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error adding texts to vector store: {e}")
     
     return UploadResponse(message="PDF uploaded and content extracted successfully.", filename=file.filename)
 
@@ -60,12 +68,14 @@ def query_pdf(request: QueryRequest):
     # Retrieve relevant documents
     try:
         relevant_texts = vector_store.query(query, k=5, embeddings=embeddings)
+        print(f"Retrieved relevant texts for query '{query}': {relevant_texts}")  # Debugging output
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error querying vector store: {e}")
     
     # Generate answer using LLM
     try:
         answer = query_handler.get_answer(relevant_texts, query)
+        print(f"Generated answer for query '{query}': {answer}")  # Debugging output
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating answer: {e}")
     
