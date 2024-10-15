@@ -1,6 +1,6 @@
-# App/main.py
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
 from .models import UploadResponse, QueryRequest, QueryResponse
 from .pdf_extractor import extract_main_content
 from .vector_store import VectorStore
@@ -10,6 +10,9 @@ from .utils import ensure_directory
 import os
 
 app = FastAPI(title="LangChain RAG Chatbot (German)")
+
+# Initialize templates
+templates = Jinja2Templates(directory="App/templates")
 
 # Initialize LLM and embeddings
 llm = get_llm()
@@ -24,19 +27,9 @@ vector_store = VectorStore(store_path=os.getenv("VECTOR_STORE_PATH", "./vector_s
 # Initialize QueryHandler with the loaded LLM
 query_handler = QueryHandler(llm=llm)
 
-# Root route for instructions
-@app.get("/")
-async def read_root():
-    return {
-        "message": "Welcome to the LangChain RAG Chatbot (German)!",
-        "instructions": {
-            "upload": "Use POST /upload to upload a PDF file.",
-            "query": "Use POST /query with a JSON payload containing your query."
-        },
-        "example_query": {
-            "query": "What is the main topic of the document?"
-        }
-    }
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/upload", response_model=UploadResponse)
 async def upload_pdf(file: UploadFile = File(...)):
@@ -79,6 +72,3 @@ def query_pdf(request: QueryRequest):
         raise HTTPException(status_code=500, detail=f"Error generating answer: {e}")
     
     return QueryResponse(answer=answer)
-
-
-
