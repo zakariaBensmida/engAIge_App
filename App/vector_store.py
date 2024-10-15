@@ -5,7 +5,9 @@ from typing import List
 import os
 import numpy as np
 
-store_path="C:/Users/zakar/vector_store"
+# Set your desired store path for the FAISS index
+store_path = "C:/Users/zakar/vector_store/index.faiss"  # Add a filename to store the index
+
 class VectorStore:
     def __init__(self, store_path: str, embedding_model_name: str):
         self.store_path = store_path
@@ -74,7 +76,7 @@ class VectorStore:
 # Example usage
 if __name__ == "__main__":
     # Initialize VectorStore
-    vector_store = VectorStore("path_to_store", "distiluse-base-multilingual-cased-v2")
+    vector_store = VectorStore(store_path, "distiluse-base-multilingual-cased-v2")
 
     # Add some test texts
     vector_store.add_texts([
@@ -89,9 +91,3 @@ if __name__ == "__main__":
     # Query for a known text
     results = vector_store.query("test document")
     print("Query Results:", results)
-
-
-    
-
-
-
