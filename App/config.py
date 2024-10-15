@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # General settings
-MODEL_NAME = os.getenv("MODEL_NAME", "dbmdz/german-gpt2")  # Default model name for German
+MODEL_NAME = os.getenv("MODEL_NAME", "stabilityai/stablelm-tuned-alpha-7b")  # Default model name for German
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/german-nlp")
 
 # LLM configuration
