@@ -1,4 +1,3 @@
-# app/vector_store.py
 import faiss
 import pickle
 from sentence_transformers import SentenceTransformer
@@ -40,23 +39,24 @@ class VectorStore:
     
     def query(self, query_text: str, k: int = 5):
         if not self.texts:
-             return []  # Return an empty list if no texts are available
-         query_embedding = self.embedding_model.encode([query_text], convert_to_numpy=True, normalize_embeddings=True)
-         query_embedding = query_embedding.astype('float32')
-         D, I = self.index.search(query_embedding, k)
-    
-         results = []
-         print("Distances:", D)  # Debugging line
-         print("Indices:", I)     # Debugging line
-    
-       for idx in I[0]:
-           if idx < len(self.texts):
-            results.append(self.texts[idx])
-        else:
-            print(f"Index out of range: {idx}")  # Debugging line
-    
-       return results
-    
+            return []  # Return an empty list if no texts are available
+        
+        query_embedding = self.embedding_model.encode([query_text], convert_to_numpy=True, normalize_embeddings=True)
+        query_embedding = query_embedding.astype('float32')
+        D, I = self.index.search(query_embedding, k)
+
+        results = []
+        print("Distances:", D)  # Debugging line
+        print("Indices:", I)     # Debugging line
+
+        for idx in I[0]:
+            if idx < len(self.texts):
+                results.append(self.texts[idx])
+            else:
+                print(f"Index out of range: {idx}")  # Debugging line
+
+        return results
+
     
 
 
