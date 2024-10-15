@@ -1,4 +1,5 @@
 import logging
+import os
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -8,7 +9,6 @@ from .vector_store import VectorStore
 from .query_handler import QueryHandler
 from .config import get_llm, get_embeddings
 from .utils import ensure_directory
-import os
 
 # Enable debug logging
 logging.basicConfig(level=logging.DEBUG)
@@ -26,7 +26,10 @@ embeddings = get_embeddings()
 ensure_directory(os.getenv("PDF_STORAGE_PATH", "./pdfs"))
 
 # Initialize VectorStore
-vector_store = VectorStore(store_path=os.getenv("VECTOR_STORE_PATH", "./vector_store"), embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2"))
+vector_store = VectorStore(
+    store_path=os.getenv("VECTOR_STORE_PATH", "./vector_store"),
+    embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2")
+)
 
 # Initialize QueryHandler with the loaded LLM
 query_handler = QueryHandler(llm=llm, vector_store=vector_store)
@@ -44,14 +47,20 @@ async def upload_pdf(file: UploadFile = File(...)):
     with open(file_location, "wb") as f:
         f.write(await file.read())
     
+    logging.debug(f"PDF saved at: {file_location}")
+
     # Extract main content from PDF
     try:
         content = extract_main_content(file_location)
+        logging.debug(f"Extracted content: {content[:100]}...")  # Log first 100 characters
     except Exception as e:
+        logging.error(f"Error extracting PDF content: {e}")
         raise HTTPException(status_code=500, detail=f"Error extracting PDF content: {e}")
     
     # Add content to vector store
     texts = content.split('\n')
+    logging.debug(f"Number of texts to add: {len(texts)}")
+    
     vector_store.add_texts(texts, embeddings=embeddings)
     vector_store.save_store()
     
@@ -63,6 +72,8 @@ def query_pdf(request: QueryRequest):
     if not query:
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
     
+    logging.debug(f"Query received: {query}")
+
     # Retrieve relevant documents
     try:
         relevant_texts = vector_store.query(query, k=5)
@@ -84,4 +95,5 @@ def query_pdf(request: QueryRequest):
         raise HTTPException(status_code=500, detail=f"Error generating answer: {e}")
     
     return QueryResponse(answer=answer)
+
 
