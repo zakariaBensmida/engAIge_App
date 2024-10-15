@@ -65,7 +65,7 @@ def query_pdf(request: QueryRequest):
     
     # Retrieve relevant documents
     try:
-        relevant_texts = vector_store.query(query, k=5, embeddings=embeddings)
+        relevant_texts = vector_store.query(query, k=5)
         logging.debug(f"Retrieved relevant texts for query '{query}': {relevant_texts}")
         if not relevant_texts:
             raise HTTPException(status_code=404, detail="No relevant texts found.")
