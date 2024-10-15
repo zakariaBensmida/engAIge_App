@@ -29,7 +29,7 @@ ensure_directory(os.getenv("PDF_STORAGE_PATH", "./pdfs"))
 vector_store = VectorStore(store_path=os.getenv("VECTOR_STORE_PATH", "./vector_store"), embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2"))
 
 # Initialize QueryHandler with the loaded LLM
-query_handler = QueryHandler(llm=llm)
+query_handler = QueryHandler(llm=llm, vector_store=vector_store)
 
 @app.get("/")
 async def read_root(request: Request):
