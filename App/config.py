@@ -2,7 +2,7 @@ import os
 import torch
 from dotenv import load_dotenv
 from langchain.llms import HuggingFacePipeline  # Updated import
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings  # Updated import
 from transformers import pipeline
 
 # Set the number of threads for CPU
@@ -46,5 +46,6 @@ def get_embeddings():
     except Exception as e:
         print(f"Error loading embeddings: {e}")
         return None
+
 
 
