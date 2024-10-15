@@ -1,31 +1,35 @@
-# app/main.py
+# App/main.py
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from .models import UploadResponse, QueryRequest, QueryResponse
 from .pdf_extractor import extract_main_content
 from .vector_store import VectorStore
 from .query_handler import QueryHandler
-from .config import settings
+from .config import get_llm, get_embeddings
 from .utils import ensure_directory
 import os
 
 app = FastAPI(title="LangChain RAG Chatbot (German)")
 
+# Initialize LLM and embeddings
+llm = get_llm()
+embeddings = get_embeddings()
+
 # Ensure PDF storage directory exists
-ensure_directory(settings.PDF_STORAGE_PATH)
+ensure_directory(os.getenv("PDF_STORAGE_PATH", "./pdfs"))
 
 # Initialize VectorStore
-vector_store = VectorStore(store_path=settings.VECTOR_STORE_PATH, embedding_model_name=settings.EMBEDDING_MODEL_NAME)
+vector_store = VectorStore(store_path=os.getenv("VECTOR_STORE_PATH", "./vector_store"), embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2"))
 
-# Initialize QueryHandler
-query_handler = QueryHandler(llm_model_name=settings.LLM_MODEL_NAME)
+# Initialize QueryHandler with the loaded LLM
+query_handler = QueryHandler(llm=llm)
 
 @app.post("/upload", response_model=UploadResponse)
 async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
     
-    file_location = os.path.join(settings.PDF_STORAGE_PATH, file.filename)
+    file_location = os.path.join(os.getenv("PDF_STORAGE_PATH", "./pdfs"), file.filename)
     with open(file_location, "wb") as f:
         f.write(await file.read())
     
@@ -37,7 +41,7 @@ async def upload_pdf(file: UploadFile = File(...)):
     
     # Add content to vector store
     texts = content.split('\n')
-    vector_store.add_texts(texts)
+    vector_store.add_texts(texts, embeddings=embeddings)
     vector_store.save_store()
     
     return UploadResponse(message="PDF uploaded and content extracted successfully.", filename=file.filename)
@@ -50,7 +54,7 @@ def query_pdf(request: QueryRequest):
     
     # Retrieve relevant documents
     try:
-        relevant_texts = vector_store.query(query, k=5)
+        relevant_texts = vector_store.query(query, k=5, embeddings=embeddings)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error querying vector store: {e}")
     
@@ -61,4 +65,5 @@ def query_pdf(request: QueryRequest):
         raise HTTPException(status_code=500, detail=f"Error generating answer: {e}")
     
     return QueryResponse(answer=answer)
+
 
