@@ -43,9 +43,7 @@ def get_llm():
 def get_embeddings():
     return HuggingFaceEmbeddings(**EMBEDDING_CONFIG)
 
-# Test the functions
-if __name__ == "__main__":
-   
+
 
 
 
