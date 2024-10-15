@@ -9,7 +9,7 @@ load_dotenv()
 
 # General settings
 MODEL_NAME = os.getenv("MODEL_NAME", "stabilityai/stablelm-tuned-alpha-7b")  # Default model name for German
-EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/german-nlp")
+EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2")
 
 # LLM configuration
 LLM_CONFIG = {
