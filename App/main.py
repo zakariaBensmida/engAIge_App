@@ -23,7 +23,7 @@ llm = get_llm()
 embeddings = get_embeddings()
 
 # Ensure PDF storage directory exists
-ensure_directory(os.getenv("PDF_STORAGE_PATH", "./pdfs"))
+ensure_directory(os.getenv("PDF_STORAGE_PATH", "./App/pdfs"))
 
 # Initialize VectorStore
 vector_store = VectorStore(
@@ -43,7 +43,7 @@ async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
     
-    file_location = os.path.join(os.getenv("PDF_STORAGE_PATH", "./pdfs"), file.filename)
+    file_location = os.path.join(os.getenv("PDF_STORAGE_PATH", "./App/pdfs"), file.filename)
     with open(file_location, "wb") as f:
         f.write(await file.read())
     
