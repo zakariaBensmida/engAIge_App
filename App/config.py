@@ -23,10 +23,10 @@ LLM_CONFIG = {
     "repetition_penalty": 1.1,
 }
 
-# Embedding configuration
+# Embedding configuration (removed 'device')
 EMBEDDING_CONFIG = {
     "model_name": EMBEDDING_MODEL_NAME,
-    "device": "cuda" if torch.cuda.is_available() else "cpu",
+    # Removed "device" parameter
 }
 
 # Function to initialize the LLM
@@ -42,7 +42,7 @@ def get_llm():
 # Function to initialize the embeddings
 def get_embeddings():
     try:
-        return HuggingFaceEmbeddings(**EMBEDDING_CONFIG)
+        return HuggingFaceEmbeddings(**EMBEDDING_CONFIG)  # Ensure this does not include 'device'
     except Exception as e:
         print(f"Error loading embeddings: {e}")
         return None
