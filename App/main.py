@@ -9,10 +9,10 @@ from .config import get_llm, get_embeddings
 from .utils import ensure_directory
 import os
 
-app = FastAPI(title="LangChain RAG Chatbot (German)")
+app = FastAPI()
 
-# Initialize templates
-templates = Jinja2Templates(directory="App/templates")
+# Set up the templates directory
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "../templates"))
 
 # Initialize LLM and embeddings
 llm = get_llm()
@@ -26,11 +26,9 @@ vector_store = VectorStore(store_path=os.getenv("VECTOR_STORE_PATH", "./vector_s
 
 # Initialize QueryHandler with the loaded LLM
 query_handler = QueryHandler(llm=llm)
-
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
-
 @app.post("/upload", response_model=UploadResponse)
 async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
