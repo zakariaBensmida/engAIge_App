@@ -1,6 +1,7 @@
 import os
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.llms import HuggingFaceLLM
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.llms import HuggingFaceLLM
+
 
 # Load environment variables from .env file
 from dotenv import load_dotenv
