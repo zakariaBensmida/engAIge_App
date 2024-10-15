@@ -24,6 +24,20 @@ vector_store = VectorStore(store_path=os.getenv("VECTOR_STORE_PATH", "./vector_s
 # Initialize QueryHandler with the loaded LLM
 query_handler = QueryHandler(llm=llm)
 
+# Root route for instructions
+@app.get("/")
+async def read_root():
+    return {
+        "message": "Welcome to the LangChain RAG Chatbot (German)!",
+        "instructions": {
+            "upload": "Use POST /upload to upload a PDF file.",
+            "query": "Use POST /query with a JSON payload containing your query."
+        },
+        "example_query": {
+            "query": "What is the main topic of the document?"
+        }
+    }
+
 @app.post("/upload", response_model=UploadResponse)
 async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
@@ -65,5 +79,6 @@ def query_pdf(request: QueryRequest):
         raise HTTPException(status_code=500, detail=f"Error generating answer: {e}")
     
     return QueryResponse(answer=answer)
+
 
 
