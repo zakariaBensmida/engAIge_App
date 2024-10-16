@@ -15,46 +15,21 @@ class QueryHandler:
         self.vector_store = vector_store
 
     def get_relevant_texts(self, query: str, top_k: int = 5) -> List[str]:
-        """
-        Retrieves relevant texts from the vector store based on the query.
-
-        Args:
-            query (str): The user's question or query.
-            top_k (int): Number of relevant texts to retrieve.
-
-        Returns:
-            List[str]: A list of relevant texts.
-        """
+        # Retrieve relevant texts from the vector store based on the query
         relevant_texts = self.vector_store.query(query, k=top_k)
         return relevant_texts
 
     def get_answer(self, query: str) -> str:
-        """
-        Generates an answer to the query by retrieving relevant texts and using an LLM to generate a response.
-
-        Args:
-            query (str): The user's question or query.
-
-        Returns:
-            str: The generated answer.
-        """
-        try:
-            # Retrieve relevant texts for the given query
-            relevant_texts = self.get_relevant_texts(query)
-            
-            # Combine relevant texts into a context
-            context = "\n".join(relevant_texts)
-            prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
-
-            # Generate the answer using the LLM without the temperature argument
-            response = self.llm()[0]['generated_text']
-            answer = response.strip()  # Remove leading and trailing spaces
-
-            return answer
+        # Retrieve relevant texts for the given query
+        relevant_texts = self.get_relevant_texts(query)
         
-        except Exception as e:
-            print(f"Error generating answer: {e}")
-            return "An error occurred while generating the answer."
+        # Combine relevant texts into a context
+        context = "\n".join(relevant_texts)
+        prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
+        
+        # Generate the answer using the LLM
+        response = self.llm(prompt, max_length=150, num_return_sequences=1, temperature=0.7)
+        return response[0]['generated_text'].strip()
 
 # Example usage
 if __name__ == "__main__":
@@ -67,7 +42,7 @@ if __name__ == "__main__":
     query_handler = QueryHandler(vector_store=vector_store)
 
     # Example query
-    query = "Was ist die Grundzulage?"
+    query = "What is health insurance coverage?"
     answer = query_handler.get_answer(query)
     print("Answer:", answer)
 
