@@ -1,3 +1,5 @@
+# App/main.py
+
 import logging
 import os
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
@@ -23,11 +25,12 @@ llm = get_llm()
 embeddings = get_embeddings()
 
 # Ensure PDF storage directory exists
-ensure_directory(os.getenv("PDF_STORAGE_PATH", "./App/pdfs"))
+pdf_storage_path = os.getenv("PDF_STORAGE_PATH", "./App/pdfs")
+ensure_directory(pdf_storage_path)
 
 # Initialize VectorStore
 vector_store = VectorStore(
-    store_path=os.getenv("VECTOR_STORE_PATH", "./vector_store"),
+    store_path=os.getenv("VECTOR_STORE_PATH", "./vector_store/index.faiss"),
     embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2")
 )
 
@@ -43,7 +46,7 @@ async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
     
-    file_location = os.path.join(os.getenv("PDF_STORAGE_PATH", "./App/pdfs"), file.filename)
+    file_location = os.path.join(pdf_storage_path, file.filename)
     with open(file_location, "wb") as f:
         f.write(await file.read())
     
@@ -61,7 +64,7 @@ async def upload_pdf(file: UploadFile = File(...)):
     texts = content.split('\n')
     logging.debug(f"Number of texts to add: {len(texts)}")
     
-    vector_store.add_texts(texts, embeddings=embeddings)
+    vector_store.add_texts(texts)
     vector_store.save_store()
     
     return UploadResponse(message="PDF uploaded and content extracted successfully.", filename=file.filename)
@@ -80,6 +83,8 @@ def query_pdf(request: QueryRequest):
         logging.debug(f"Retrieved relevant texts for query '{query}': {relevant_texts}")
         if not relevant_texts:
             raise HTTPException(status_code=404, detail="No relevant texts found.")
+    except HTTPException as he:
+        raise he  # Re-raise known HTTP exceptions
     except Exception as e:
         logging.error(f"Error querying vector store: {e}")
         raise HTTPException(status_code=500, detail=f"Error querying vector store: {e}")
@@ -95,5 +100,6 @@ def query_pdf(request: QueryRequest):
         raise HTTPException(status_code=500, detail=f"Error generating answer: {e}")
     
     return QueryResponse(answer=answer)
+
 
 
