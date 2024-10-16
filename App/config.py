@@ -1,31 +1,21 @@
 import os
 import torch
+import logging
 from dotenv import load_dotenv
-from langchain_huggingface import HuggingFacePipeline, HuggingFaceEmbeddings  # Updated imports
+from langchain_community.llms import HuggingFacePipeline, HuggingFaceEmbeddings  # Updated imports
 from transformers import pipeline
 
 # Set the number of threads for CPU
 torch.set_num_threads(os.cpu_count())  # Use all available cores
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
 
 load_dotenv()
 
 # General settings
 MODEL_NAME = os.getenv("MODEL_NAME", "stabilityai/stablelm-tuned-alpha-7b")
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2")
-
-# LLM configuration (Remove LLM_CONFIG dict)
-LLM_CONFIG = {
-    "max_length": 150,
-    "temperature": 0.7,
-    "top_k": 50,
-    "top_p": 0.95,
-    "repetition_penalty": 1.1,
-}
-
-# Embedding configuration
-EMBEDDING_CONFIG = {
-    "model_name": EMBEDDING_MODEL_NAME,
-}
 
 # Function to initialize the LLM
 def get_llm():
@@ -36,7 +26,7 @@ def get_llm():
         # Initialize HuggingFacePipeline with the pipeline only
         return HuggingFacePipeline(pipeline=hf_pipeline)
     except Exception as e:
-        print(f"Error loading the model: {e}")
+        logging.error(f"Error loading the model: {e}")
         return None
 
 # Function to initialize the embeddings
@@ -45,5 +35,5 @@ def get_embeddings():
         # Initialize HuggingFaceEmbeddings with the new class
         return HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)  # Ensure this matches the new API
     except Exception as e:
-        print(f"Error loading embeddings: {e}")
+        logging.error(f"Error loading embeddings: {e}")
         return None
