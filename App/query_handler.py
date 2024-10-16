@@ -36,7 +36,7 @@ class QueryHandler:
 
         # Generate the answer using the LLM
         try:
-            response = self.llm(prompt, max_length=150, num_return_sequences=1, temperature=0.5)  # Adjust temperature
+            response = self.llm(prompt, max_length=150, num_return_sequences=1, temperature=0.9)  # Adjust temperature
             return response[0]['generated_text'].strip()
         except Exception as e:
             logging.error("Fehler bei der Generierung der Antwort: %s", e)
