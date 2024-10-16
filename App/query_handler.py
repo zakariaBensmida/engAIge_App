@@ -47,7 +47,7 @@ class QueryHandler:
             prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
 
             # Generate the answer using the LLM without the temperature argument
-            response = self.llm(prompt, max_length=150, num_return_sequences=1)[0]['generated_text']
+            response = self.llm()[0]['generated_text']
             answer = response.strip()  # Remove leading and trailing spaces
 
             return answer
