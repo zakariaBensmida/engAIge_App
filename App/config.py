@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.DEBUG)
 load_dotenv()
 
 # General settings
-MODEL_NAME = os.getenv("MODEL_NAME", "stabilityai/stablelm-tuned-alpha-7b")
+MODEL_NAME = os.getenv("MODEL_NAME", "dbmdz/german-gpt2")
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2")
 
 # Function to initialize the LLM
@@ -39,5 +39,6 @@ def get_embeddings():
     except Exception as e:
         logging.error(f"Error loading embeddings: {e}")
         return None
+
 
 
