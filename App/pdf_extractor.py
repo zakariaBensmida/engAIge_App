@@ -1,6 +1,10 @@
 import fitz  # PyMuPDF
 import re
 import os
+import logging
+
+# Enable logging
+logging.basicConfig(level=logging.DEBUG)
 
 def is_toc_line(line: str) -> bool:
     toc_patterns = [
@@ -31,13 +35,15 @@ def is_main_title_line(line: str) -> bool:
             return True
     return False
 
-def extract_main_content(pdf_path: str) -> str:
+def extract_main_content(pdf_path: str, chunk_size=300, overlap=50) -> str:
     """
     Extracts main content from a PDF, excluding the Table of Contents (ToC).
-    
+
     Args:
         pdf_path (str): Path to the PDF file.
-    
+        chunk_size (int): Number of characters per chunk for content extraction.
+        overlap (int): Overlap between chunks to maintain context.
+
     Returns:
         str: Extracted main content.
     """
@@ -47,35 +53,37 @@ def extract_main_content(pdf_path: str) -> str:
         page = doc.load_page(page_num)
         full_text += page.get_text("text") + "\n"  # Get all text from the page
     doc.close()
-    
+
+    logging.debug(f"Extracted raw text from PDF, length: {len(full_text)}")
+
     # Split at 'Inhaltsübersicht' (Assuming the PDF is in German)
     sections = full_text.split('Inhaltsübersicht')
     if len(sections) < 2:
-        print("No 'Inhaltsübersicht' found in the document.")
+        logging.warning("No 'Inhaltsübersicht' found in the document.")
         return full_text  # Return full text if ToC not found
-    
+
     post_toc_text = sections[1]
     lines = post_toc_text.split('\n')
-    
+
     extracted_data = []
     current_title = None
     current_content = []
     capturing = False
-    
+
     toc_end_pattern = re.compile(r'^Seite[:\s]*\d+$', re.IGNORECASE)
-    
+
     for line in lines:
         stripped_line = line.strip()
-        
+
         if not capturing:
             if toc_end_pattern.match(stripped_line):
                 capturing = True
             continue  # Skip lines until end of ToC
-        
+
         # Skip residual ToC lines
         if is_toc_line(stripped_line):
             continue
-        
+
         # Identify main titles
         if is_main_title_line(stripped_line):
             if current_title and current_content:
@@ -88,19 +96,19 @@ def extract_main_content(pdf_path: str) -> str:
         else:
             if current_title:
                 current_content.append(stripped_line)
-    
+
     # Append the last section
     if current_title and current_content:
         extracted_data.append({
             'title': current_title,
             'content': ' '.join(current_content)
         })
-    
+
     # Combine all content
     combined_content = "\n".join([section['content'] for section in extracted_data])
-    
-    # Debug: Print combined content for verification
-    print("Combined extracted content:\n", combined_content)
+
+    logging.debug(f"Combined extracted content length: {len(combined_content)}")
+    logging.debug(f"First 500 characters of combined content: {combined_content[:500]}")
 
     return combined_content
 
