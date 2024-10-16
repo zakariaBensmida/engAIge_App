@@ -35,9 +35,21 @@ vector_store = VectorStore(
 # Initialize QueryHandler with the loaded LLM
 query_handler = QueryHandler(vector_store=vector_store)  # LLM is now initialized inside QueryHandler
 
+
+# Function to remove redundant phrases in the generated answer
+def remove_redundant_phrases(text):
+    sentences = text.split('. ')
+    unique_sentences = []
+    for sentence in sentences:
+        if sentence not in unique_sentences:
+            unique_sentences.append(sentence)
+    return '. '.join(unique_sentences)
+
+
 @app.get("/")
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
 
 @app.post("/upload", response_model=UploadResponse)
 async def upload_pdf(file: UploadFile = File(...)):
@@ -50,22 +62,20 @@ async def upload_pdf(file: UploadFile = File(...)):
     
     logging.debug(f"PDF saved at: {file_location}")
 
-    # Extract main content from PDF
+    # Extract main content from PDF with chunking
     try:
-        content = extract_main_content(file_location)
-        logging.debug(f"Extracted content: {content[:100]}...")  # Log first 100 characters
+        chunks = extract_main_content(file_location, chunk_size=300, overlap=50)  # Improved chunking
+        logging.debug(f"Extracted {len(chunks)} content chunks")
     except Exception as e:
         logging.error(f"Error extracting PDF content: {e}")
         raise HTTPException(status_code=500, detail=f"Error extracting PDF content: {e}")
     
-    # Add content to vector store
-    texts = content.split('\n')
-    logging.debug(f"Number of texts to add: {len(texts)}")
-    
-    vector_store.add_texts(texts)
+    # Add content chunks to vector store
+    vector_store.add_texts(chunks)
     vector_store.save_store()
     
     return UploadResponse(message="PDF uploaded and content extracted successfully.", filename=file.filename)
+
 
 @app.post("/query", response_model=QueryResponse)
 def query_pdf(request: QueryRequest):
@@ -75,15 +85,20 @@ def query_pdf(request: QueryRequest):
     
     logging.debug(f"Query received: {query}")
 
-    # Generate answer using LLM
+    # Generate answer using LLM with response fine-tuning parameters
     try:
-        answer = query_handler.get_answer(query)  # Pass only the query
+        answer = query_handler.get_answer(query, temperature=0.7, max_tokens=150, top_p=0.9)  # Customize LLM response
         if not answer:
             raise HTTPException(status_code=500, detail="No answer generated.")
         logging.debug(f"Generated answer for query '{query}': {answer}")
+        
+        # Remove redundant phrases in post-processing
+        cleaned_answer = remove_redundant_phrases(answer)
+        logging.debug(f"Cleaned answer: {cleaned_answer}")
     except Exception as e:
         logging.error(f"Error generating answer: {e}")
         raise HTTPException(status_code=500, detail=f"Error generating answer: {e}")
     
-    return QueryResponse(answer=answer)
+    return QueryResponse(answer=cleaned_answer)
+
 
