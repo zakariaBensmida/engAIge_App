@@ -24,7 +24,7 @@ class QueryHandler:
         relevant_texts = self.get_relevant_texts(query)
     
     if not relevant_texts:
-        return "Ich kann leider keine relevanten Informationen finden."
+       return "Ich kann leider keine relevanten Informationen finden."
 
     # Limit context to the first few texts or sentences
     context = "\n".join(relevant_texts[:3])  # Limit to the top 3 relevant texts
