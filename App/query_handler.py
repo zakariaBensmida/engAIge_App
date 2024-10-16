@@ -47,16 +47,10 @@ class QueryHandler:
             prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
 
             # Generate the answer using the LLM
-            inputs = self.llm.tokenizer(prompt, return_tensors='pt')
-            response_ids = self.llm.model.generate(
-                **inputs,
-                max_length=150,
-                num_return_sequences=1,
-                temperature=0.7
-            )
+            response = self.llm(prompt, max_length=150, num_return_sequences=1, temperature=0.7)
+            answer = response[0]['generated_text'].strip()  # Adjust for the output format
 
-            answer = self.llm.tokenizer.decode(response_ids[0], skip_special_tokens=True)
-            return answer.strip()
+            return answer
         
         except Exception as e:
             print(f"Error generating answer: {e}")
@@ -73,9 +67,10 @@ if __name__ == "__main__":
     query_handler = QueryHandler(vector_store=vector_store)
 
     # Example query
-    query = "What is health insurance coverage?"
+    query = "Was ist die Grundzulage?"
     answer = query_handler.get_answer(query)
     print("Answer:", answer)
+
 
 
 
