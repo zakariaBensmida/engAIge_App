@@ -3,15 +3,13 @@ import faiss
 import numpy as np
 import pickle
 import logging
-from transformers import AutoModel, AutoTokenizer
-import torch
+from sentence_transformers import SentenceTransformer
 
 class VectorStore:
     def __init__(self, store_path, embedding_model_name):
         self.store_path = store_path
         self.embedding_model_name = embedding_model_name
-        self.tokenizer = AutoTokenizer.from_pretrained(embedding_model_name)
-        self.model = AutoModel.from_pretrained(embedding_model_name)
+        self.model = SentenceTransformer(embedding_model_name)
         self.index = None
         self.texts = []
 
@@ -32,9 +30,7 @@ class VectorStore:
 
     def embed_documents(self, documents):
         """Generate embeddings for a list of documents."""
-        inputs = self.tokenizer(documents, padding=True, truncation=True, return_tensors="pt")
-        with torch.no_grad():
-            embeddings = self.model(**inputs).last_hidden_state.mean(dim=1).numpy()
+        embeddings = self.model.encode(documents, show_progress_bar=True)
         return embeddings
 
     def load_documents(self, pdf_directory):
@@ -96,7 +92,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     store_path = os.getenv("VECTOR_STORE_PATH", "./vector_store/index.faiss")
-    embedding_model_name = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/all-MiniLM-L6-v2")  # Update as necessary
+    embedding_model_name = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/distiluse-base-multilingual-cased-v1")  # Update as necessary
 
     vector_store = VectorStore(store_path=store_path, embedding_model_name=embedding_model_name)
 
