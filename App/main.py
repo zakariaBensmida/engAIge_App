@@ -1,5 +1,3 @@
-# App/main.py
-
 import logging
 import os
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
@@ -35,7 +33,7 @@ vector_store = VectorStore(
 )
 
 # Initialize QueryHandler with the loaded LLM
-query_handler = QueryHandler(llm=llm, vector_store=vector_store)
+query_handler = QueryHandler(vector_store=vector_store)  # LLM is now initialized inside QueryHandler
 
 @app.get("/")
 async def read_root(request: Request):
@@ -77,21 +75,9 @@ def query_pdf(request: QueryRequest):
     
     logging.debug(f"Query received: {query}")
 
-    # Retrieve relevant documents
-    try:
-        relevant_texts = vector_store.query(query, k=5)
-        logging.debug(f"Retrieved relevant texts for query '{query}': {relevant_texts}")
-        if not relevant_texts:
-            raise HTTPException(status_code=404, detail="No relevant texts found.")
-    except HTTPException as he:
-        raise he  # Re-raise known HTTP exceptions
-    except Exception as e:
-        logging.error(f"Error querying vector store: {e}")
-        raise HTTPException(status_code=500, detail=f"Error querying vector store: {e}")
-    
     # Generate answer using LLM
     try:
-        answer = query_handler.get_answer(relevant_texts, query)
+        answer = query_handler.get_answer(query)  # Pass only the query
         if not answer:
             raise HTTPException(status_code=500, detail="No answer generated.")
         logging.debug(f"Generated answer for query '{query}': {answer}")
@@ -100,7 +86,4 @@ def query_pdf(request: QueryRequest):
         raise HTTPException(status_code=500, detail=f"Error generating answer: {e}")
     
     return QueryResponse(answer=answer)
-
-
-
 
