@@ -28,7 +28,7 @@ class QueryHandler:
         prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
         
         # Generate the answer using the LLM
-        response = self.llm(prompt, max_length=150, num_return_sequences=1, temperature=0.7)
+        response = self.llm(prompt, max_length=150, num_return_sequences=1, temperature=0.5)
         return response[0]['generated_text'].strip()
 
 # Example usage
