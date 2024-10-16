@@ -20,16 +20,24 @@ class QueryHandler:
         return relevant_texts
 
     def get_answer(self, query: str) -> str:
-        # Retrieve relevant texts for the given query
-        relevant_texts = self.get_relevant_texts(query)
-        
-        # Combine relevant texts into a context
-        context = "\n".join(relevant_texts)
-        prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
-        
-        # Generate the answer using the LLM
-        response = self.llm(prompt, max_length=150, num_return_sequences=1, temperature=0.5)
+    # Retrieve relevant texts for the given query
+    relevant_texts = self.get_relevant_texts(query)
+    
+    if not relevant_texts:
+        return "Ich kann leider keine relevanten Informationen finden."
+
+    # Limit context to the first few texts or sentences
+    context = "\n".join(relevant_texts[:3])  # Limit to the top 3 relevant texts
+    prompt = f"Kontext:\n{context}\n\nFrage: {query}\nAntwort:"
+    
+    # Generate the answer using the LLM
+    try:
+        response = self.llm(prompt, max_length=150, num_return_sequences=1, temperature=0.5)  # Adjust temperature
         return response[0]['generated_text'].strip()
+    except Exception as e:
+        logging.error("Fehler bei der Generierung der Antwort: %s", e)
+        return "Ein Fehler ist aufgetreten, während die Antwort generiert wurde."
+
 
 # Example usage
 if __name__ == "__main__":
