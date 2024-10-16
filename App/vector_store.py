@@ -1,23 +1,18 @@
-# App/vector_store.py
-
 import os
 import faiss
 import numpy as np
 import pickle
 import logging
-from langchain_community.document_loaders import PyPDFDirectoryLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceBgeEmbeddings
-from langchain_community.vectorstores import FAISS
+from transformers import AutoModel, AutoTokenizer
+import torch
 
 class VectorStore:
     def __init__(self, store_path, embedding_model_name):
         self.store_path = store_path
-        self.embedding_model = HuggingFaceBgeEmbeddings(
-            model_name=embedding_model_name,
-            model_kwargs={'device': 'cpu'},
-            encode_kwargs={'normalize_embeddings': True}
-        )
+        self.embedding_model_name = embedding_model_name
+        self.tokenizer = AutoTokenizer.from_pretrained(embedding_model_name)
+        self.model = AutoModel.from_pretrained(embedding_model_name)
+        self.index = None
         self.texts = []
 
         if store_path and os.path.exists(store_path):
@@ -32,26 +27,30 @@ class VectorStore:
                 logging.warning(f"Pickle file {pickle_path} not found. Texts will not be loaded.")
         else:
             # Initialize a new FAISS index
-            self.index = None  # Initialize index here to create later
+            self.index = None
             logging.debug("Creating a new FAISS index store.")
+
+    def embed_documents(self, documents):
+        """Generate embeddings for a list of documents."""
+        inputs = self.tokenizer(documents, padding=True, truncation=True, return_tensors="pt")
+        with torch.no_grad():
+            embeddings = self.model(**inputs).last_hidden_state.mean(dim=1).numpy()
+        return embeddings
 
     def load_documents(self, pdf_directory):
         """Load and split documents from the specified directory."""
-        loader = PyPDFDirectoryLoader(pdf_directory)
-        documents = loader.load()
-
-        # Split the documents into manageable chunks
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        final_documents = text_splitter.split_documents(documents)
+        # Implement your PDF loading logic here. This is a placeholder.
+        documents = []  # Replace this with actual PDF content loading logic.
         
-        # Generate embeddings for the split documents
-        embeddings = self.embedding_model.embed_documents([doc.page_content for doc in final_documents])
-        embeddings = np.array(embeddings).astype('float32')
+        # For demonstration, let's assume we have a list of texts from the PDFs
+        for doc in documents:
+            self.texts.append(doc)  # You should append actual content after loading
+        
+        embeddings = self.embed_documents(self.texts)
         self.index = faiss.IndexFlatL2(embeddings.shape[1])  # Use the correct embedding dimension
         self.index.add(embeddings)
 
-        self.texts.extend([doc.page_content for doc in final_documents])
-        logging.debug(f"Loaded and added {len(final_documents)} documents to the vector store.")
+        logging.debug(f"Loaded and added {len(self.texts)} documents to the vector store.")
 
     def save_store(self):
         """Save the FAISS index and texts to files."""
@@ -70,7 +69,7 @@ class VectorStore:
             logging.debug("No texts available in the vector store.")
             return []
 
-        query_embedding = np.array(self.embedding_model.embed_query(query)).astype('float32').reshape(1, -1)
+        query_embedding = self.embed_documents([query])
         distances, indices = self.index.search(query_embedding, k)
 
         logging.debug(f"Query embedding shape: {query_embedding.shape}")
@@ -94,20 +93,14 @@ class VectorStore:
 
 # Example usage for standalone testing
 if __name__ == "__main__":
-    import logging
-    from App.config import get_embeddings  # Ensure this import is correct
-
-    # Initialize logging
     logging.basicConfig(level=logging.DEBUG)
 
-    # Define paths
     store_path = os.getenv("VECTOR_STORE_PATH", "./vector_store/index.faiss")
-    embedding_model_name = os.getenv("EMBEDDING_MODEL_NAME", "BAAI/bge-small-en-v1.5")  # Update model name
+    embedding_model_name = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/all-MiniLM-L6-v2")  # Update as necessary
 
-    # Initialize VectorStore
     vector_store = VectorStore(store_path=store_path, embedding_model_name=embedding_model_name)
 
-    # Load documents from the PDF directory
+    # Load documents from the PDF directory (implement your loading logic)
     pdf_directory = './path_to_your_pdf_directory'  # Specify your PDF directory
     vector_store.load_documents(pdf_directory)
 
@@ -118,3 +111,4 @@ if __name__ == "__main__":
     query = "What is health insurance coverage?"
     results = vector_store.query(query)
     print("Query Results:", results)
+
