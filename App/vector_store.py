@@ -25,7 +25,8 @@ class VectorStore:
         else:
             logging.debug("Creating a new store.")
             # Using FAISS IndexFlatL2 for cosine similarity
-            self.index = faiss.IndexFlatL2(self.embedding_model.embed_query("test").shape[0])
+            self.index = faiss.IndexFlatL2(np.array(self.embedding_model.embed_query("test")).shape[1])
+
 
     def add_texts(self, texts: List[str], embeddings=None):
         logging.debug(f"Adding {len(texts)} texts to the vector store.")
