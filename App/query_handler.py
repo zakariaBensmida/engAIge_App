@@ -46,8 +46,7 @@ class QueryHandler:
             context = "\n".join(relevant_texts)
             prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
 
-            # Generate the answer using the LLM
-            # Ensure to pass parameters correctly in a dictionary format if necessary
+            # Generate the answer using the LLM without the temperature argument
             response = self.llm(prompt, max_length=150, num_return_sequences=1)[0]['generated_text']
             answer = response.strip()  # Remove leading and trailing spaces
 
@@ -71,7 +70,6 @@ if __name__ == "__main__":
     query = "Was ist die Grundzulage?"
     answer = query_handler.get_answer(query)
     print("Answer:", answer)
-
 
 
 
