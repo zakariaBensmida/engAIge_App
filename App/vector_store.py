@@ -1,4 +1,4 @@
-# vector_store.py
+# App/vector_store.py
 
 import os
 import faiss
@@ -6,7 +6,6 @@ import numpy as np
 import pickle
 import logging
 from langchain_huggingface import HuggingFaceEmbeddings  # Updated import
-from langchain.schema import Document
 
 class VectorStore:
     def __init__(self, store_path, embedding_model_name):
@@ -14,60 +13,42 @@ class VectorStore:
         self.embedding_model = HuggingFaceEmbeddings(model_name=embedding_model_name)
         self.texts = []
 
-        # Get embeddings for a test query to determine dimensionality
-        embedding = np.array(self.embedding_model.embed_query("test"))
-
-        # Debugging: Check the shape and content of the embedding
-        logging.debug(f"Embedding shape: {embedding.shape}")
-        logging.debug(f"Embedding content: {embedding}")
-
-        # Handle the dimensionality of the embedding
-        if len(embedding.shape) == 1:
-            # Single embedding (1D array)
-            embedding_dim = embedding.shape[0]
-            logging.debug(f"Using shape[0], embedding_dim: {embedding_dim}")
-            self.index = faiss.IndexFlatL2(embedding_dim)
-        elif len(embedding.shape) == 2:
-            # Batch of embeddings (2D array)
-            embedding_dim = embedding.shape[1]
-            logging.debug(f"Using shape[1], embedding_dim: {embedding_dim}")
-            self.index = faiss.IndexFlatL2(embedding_dim)
-        else:
-            raise ValueError(f"Unexpected embedding shape: {embedding.shape}")
-
-        # Load an existing index if the store_path exists, or create a new one
         if store_path and os.path.exists(store_path):
             logging.debug(f"Loading existing FAISS index from {store_path}")
             self.index = faiss.read_index(store_path)
-            # Load the associated texts
-            with open(f"{store_path}.pickle", "rb") as f:
-                self.texts = pickle.load(f)
-            logging.debug(f"Loaded {len(self.texts)} texts from the store.")
+            pickle_path = f"{store_path}.pickle"
+            if os.path.exists(pickle_path):
+                with open(pickle_path, "rb") as f:
+                    self.texts = pickle.load(f)
+                logging.debug(f"Loaded {len(self.texts)} texts from {pickle_path}")
+            else:
+                logging.warning(f"Pickle file {pickle_path} not found. Texts will not be loaded.")
         else:
+            # Initialize a new FAISS index
+            embedding_dim = self.embedding_model.embed_query("test").shape[0]
+            logging.debug(f"Using embedding_dim: {embedding_dim}")
+            self.index = faiss.IndexFlatL2(embedding_dim)
             logging.debug("Creating a new FAISS index store.")
 
     def save_store(self):
         """Save the FAISS index and texts to files."""
         if self.store_path:
             faiss.write_index(self.index, self.store_path)
-            with open(f"{self.store_path}.pickle", "wb") as f:
+            pickle_path = f"{self.store_path}.pickle"
+            with open(pickle_path, "wb") as f:
                 pickle.dump(self.texts, f)
-            logging.debug(f"Index saved to {self.store_path} and texts saved to {self.store_path}.pickle")
+            logging.debug(f"Index saved to {self.store_path} and texts saved to {pickle_path}")
         else:
             raise ValueError("Store path cannot be None or empty.")
 
-    def add_texts(self, texts, embeddings=None):
+    def add_texts(self, texts):
         """Add document embeddings to the FAISS index."""
-        if embeddings is None:
-            embeddings = self.embedding_model.embed_documents(texts)
-            embeddings = np.array(embeddings).astype('float32')
-            logging.debug(f"Generated embeddings with shape: {embeddings.shape}")
-        else:
-            logging.debug("Using provided embeddings.")
-
+        embeddings = self.embedding_model.embed_documents(texts)
+        embeddings = np.array(embeddings).astype('float32')
+        logging.debug(f"Generated embeddings with shape: {embeddings.shape}")
         self.index.add(embeddings)
         self.texts.extend(texts)
-        logging.debug(f"Total texts in store: {len(self.texts)}")
+        logging.debug(f"Added {len(texts)} texts to the vector store. Total texts: {len(self.texts)}")
 
     def query(self, query, k=5):
         """Search the FAISS index for the top k results for a given query."""
@@ -100,7 +81,7 @@ class VectorStore:
 # Example usage for standalone testing
 if __name__ == "__main__":
     import logging
-    from config import get_embeddings  # Ensure this import is correct based on your project structure
+    from App.config import get_embeddings  # Ensure this import is correct
 
     # Initialize logging
     logging.basicConfig(level=logging.DEBUG)
@@ -118,11 +99,7 @@ if __name__ == "__main__":
         "Hier ist ein weiterer Beispielsatz.",
         "Mehr Text für die Vektorspeicherung."
     ]
-    embeddings = vector_store.embedding_model.embed_documents(texts)
-    embeddings = np.array(embeddings).astype('float32')
-
-    # Add texts to the store
-    vector_store.add_texts(texts, embeddings=embeddings)
+    vector_store.add_texts(texts)
     vector_store.save_store()
 
 
