@@ -21,7 +21,7 @@ class QueryHandler:
 
     def get_answer(self, query: str) -> str:
     # Retrieve relevant texts for the given query
-    relevant_texts = self.get_relevant_texts(query)
+        relevant_texts = self.get_relevant_texts(query)
     
     if not relevant_texts:
         return "Ich kann leider keine relevanten Informationen finden."
