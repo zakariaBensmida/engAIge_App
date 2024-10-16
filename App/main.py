@@ -87,7 +87,7 @@ def query_pdf(request: QueryRequest):
 
     # Generate answer using LLM with response fine-tuning parameters
     try:
-        answer = query_handler.get_answer(query, temperature=0.7, max_tokens=150, top_p=0.9)  # Customize LLM response
+        answer = query_handler.get_answer(query, max_tokens=150, top_p=0.9)  # Customize LLM response
         if not answer:
             raise HTTPException(status_code=500, detail="No answer generated.")
         logging.debug(f"Generated answer for query '{query}': {answer}")
