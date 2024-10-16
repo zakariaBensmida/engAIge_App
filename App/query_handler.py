@@ -1,9 +1,16 @@
+import os
 from transformers import pipeline
 from typing import List
 from App.vector_store import VectorStore  # Adjust the import path as necessary
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 class QueryHandler:
-    def __init__(self, llm_model_name: str, vector_store: VectorStore):
+    def __init__(self, vector_store: VectorStore):
+        # Retrieve the LLM model name from the environment variables
+        llm_model_name = os.getenv("LLM_MODEL_NAME", "gpt2")  # Default to "gpt2" if not found
         self.llm = pipeline("text-generation", model=llm_model_name)
         self.vector_store = vector_store
 
@@ -29,12 +36,13 @@ if __name__ == "__main__":
     from App.vector_store import VectorStore
 
     # Initialize the vector store (replace with your actual parameters)
-    vector_store = VectorStore(store_path='./vector_store/index.faiss', embedding_model_name='sentence-transformers/all-MiniLM-L6-v2')
+    vector_store = VectorStore(store_path='./vector_store/index.faiss', embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME"))
 
     # Initialize QueryHandler
-    query_handler = QueryHandler(llm_model_name='gpt2', vector_store=vector_store)  # Change to your preferred model
+    query_handler = QueryHandler(vector_store=vector_store)
 
     # Example query
     query = "What is health insurance coverage?"
     answer = query_handler.get_answer(query)
     print("Answer:", answer)
+
