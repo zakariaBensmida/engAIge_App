@@ -1,7 +1,7 @@
 import os
 from transformers import pipeline
 from typing import List
-from vector_store import VectorStore  # Adjust the import path as necessary
+from .vector_store import VectorStore  # Relative import
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -43,6 +43,7 @@ if __name__ == "__main__":
     query = "wie hoch ist die Grundzulage?"
     answer = query_handler.get_answer(query)
     print("Answer:", answer)
+
 
 
 
