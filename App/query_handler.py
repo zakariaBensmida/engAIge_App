@@ -19,7 +19,7 @@ class QueryHandler:
         
         self.vector_store = vector_store
 
-    def get_relevant_texts(self, query: str, top_k: int = 5) -> List[str]:
+    def get_relevant_texts(self, query: str, top_k: int = 50) -> List[str]:
         # Retrieve relevant texts from the vector store based on the query
         relevant_texts = self.vector_store.query(query, k=top_k)
         if not relevant_texts:
