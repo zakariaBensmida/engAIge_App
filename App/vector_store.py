@@ -32,6 +32,7 @@ class VectorStore:
     def embed_documents(self, documents):
         """Generate embeddings for a list of documents."""
         embeddings = self.model.encode(documents, show_progress_bar=True)
+        logging.debug(f"Generated embeddings shape: {embeddings.shape}")
         return embeddings
 
     def load_documents(self, pdf_directory):
@@ -52,6 +53,7 @@ class VectorStore:
                             page = pdf_document.load_page(page_num)
                             text += page.get_text()
                         documents.append(text)
+                        logging.debug(f"Extracted text from {pdf_file}: {text[:100]}...")  # Log first 100 characters
                 except Exception as e:
                     logging.error(f"Error loading PDF {file_path}: {e}")
                     continue
@@ -61,8 +63,10 @@ class VectorStore:
         if documents:
             embeddings = self.embed_documents(documents)
             if self.index is None:
-                self.index = faiss.IndexFlatL2(embeddings.shape[1])
+                self.index = faiss.IndexFlatL2(embeddings.shape[1])  # Initialize FAISS index with dimension
+                logging.debug("Initialized new FAISS index.")
             self.index.add(embeddings)
+            logging.debug(f"Added {embeddings.shape[0]} embeddings to the FAISS index.")
 
         logging.debug(f"Loaded and added {len(documents)} documents to the vector store.")
 
@@ -84,15 +88,15 @@ class VectorStore:
             return []
 
         query_embedding = self.embed_documents([query])
-        distances, indices = self.index.search(query_embedding, k)
-
         logging.debug(f"Query embedding shape: {query_embedding.shape}")
+
+        distances, indices = self.index.search(query_embedding, k)
         logging.debug(f"Distances: {distances}")
         logging.debug(f"Indices: {indices}")
 
         results = []
         for idx in indices[0]:
-            if idx != -1 and idx < len(self.texts):
+            if idx >= 0 and idx < len(self.texts):
                 results.append(self.texts[idx])
             else:
                 logging.debug(f"Index out of range or not found: {idx}")
@@ -122,7 +126,8 @@ if __name__ == "__main__":
     vector_store.save_store()
 
     # Example query
-    query = "What is health insurance coverage?"
+    query = "Wie hoch ist die Grundzulage?"
     results = vector_store.query(query)
     print("Query Results:", results)
+
 
