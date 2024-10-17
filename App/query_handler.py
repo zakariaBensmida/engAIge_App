@@ -57,7 +57,7 @@ if __name__ == "__main__":
     query_handler = QueryHandler(vector_store=vector_store)
 
     # Example query
-    query = "What is health insurance coverage?"
+    query =  "wie hoch ist die Grundzulage?"
     answer = query_handler.get_answer(query)
     print("Answer:", answer)
 
