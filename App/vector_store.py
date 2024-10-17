@@ -3,6 +3,7 @@ import faiss
 import numpy as np
 import pickle
 import logging
+import fitz  # PyMuPDF for PDF extraction
 from sentence_transformers import SentenceTransformer
 
 class VectorStore:
@@ -35,18 +36,35 @@ class VectorStore:
 
     def load_documents(self, pdf_directory):
         """Load and split documents from the specified directory."""
-        # Implement your PDF loading logic here. This is a placeholder.
-        documents = []  # Replace this with actual PDF content loading logic.
-        
-        # For demonstration, let's assume we have a list of texts from the PDFs
-        for doc in documents:
-            self.texts.append(doc)  # You should append actual content after loading
-        
-        embeddings = self.embed_documents(self.texts)
-        self.index = faiss.IndexFlatL2(embeddings.shape[1])  # Use the correct embedding dimension
-        self.index.add(embeddings)
+        documents = []
 
-        logging.debug(f"Loaded and added {len(self.texts)} documents to the vector store.")
+        # Iterate over all PDF files in the directory
+        for pdf_file in os.listdir(pdf_directory):
+            if pdf_file.endswith(".pdf"):
+                file_path = os.path.join(pdf_directory, pdf_file)
+                logging.debug(f"Loading PDF: {file_path}")
+
+                try:
+                    # Load and extract text from each PDF
+                    with fitz.open(file_path) as pdf_document:
+                        text = ""
+                        for page_num in range(pdf_document.page_count):
+                            page = pdf_document.load_page(page_num)
+                            text += page.get_text()
+                        documents.append(text)
+                except Exception as e:
+                    logging.error(f"Error loading PDF {file_path}: {e}")
+                    continue
+
+        # Embed and store the documents
+        self.texts.extend(documents)
+        if documents:
+            embeddings = self.embed_documents(documents)
+            if self.index is None:
+                self.index = faiss.IndexFlatL2(embeddings.shape[1])
+            self.index.add(embeddings)
+
+        logging.debug(f"Loaded and added {len(documents)} documents to the vector store.")
 
     def save_store(self):
         """Save the FAISS index and texts to files."""
@@ -92,11 +110,11 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     store_path = os.getenv("VECTOR_STORE_PATH", "./vector_store/index.faiss")
-    embedding_model_name = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/distiluse-base-multilingual-cased-v1")  # Update as necessary
+    embedding_model_name = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/distiluse-base-multilingual-cased-v2")  # Update as necessary
 
     vector_store = VectorStore(store_path=store_path, embedding_model_name=embedding_model_name)
 
-    # Load documents from the PDF directory (implement your loading logic)
+    # Load documents from the PDF directory
     pdf_directory = './path_to_your_pdf_directory'  # Specify your PDF directory
     vector_store.load_documents(pdf_directory)
 
