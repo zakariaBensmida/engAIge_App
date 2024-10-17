@@ -23,7 +23,7 @@ llm = get_llm()
 embeddings = get_embeddings()
 
 # Ensure PDF storage directory exists
-pdf_storage_path = os.getenv("PDF_STORAGE_PATH", "./App/pdfs")
+pdf_storage_path = os.getenv("PDF_STORAGE_PATH")
 ensure_directory(pdf_storage_path)
 
 # Initialize VectorStore
