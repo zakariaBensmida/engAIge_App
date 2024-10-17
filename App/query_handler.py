@@ -1,7 +1,7 @@
 import os
 from transformers import pipeline
 from typing import List
-from App.vector_store import VectorStore  # Relative import
+from vector_store import VectorStore  # Relative import
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
