@@ -3,17 +3,17 @@ import faiss
 import numpy as np
 import pickle
 import logging
+import fitz  # PyMuPDF for PDF extraction
 from sentence_transformers import SentenceTransformer
-from pdf_extractor import PDFExtractor  # Assuming you have a modular pdf_extractor.py for PDF handling
-from dotenv import load_dotenv  # Import dotenv to load environment variables
+from dotenv import load_dotenv
 
 # Load environment variables from .env
 load_dotenv()
 
 # Get environment variables
-EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/distiluse-base-multilingual-cased-v2")
-VECTOR_STORE_PATH = os.getenv("VECTOR_STORE_PATH", "./vector_store/index.faiss")
-PDF_STORAGE_PATH = os.getenv("PDF_STORAGE_PATH", "./App/pdfs")
+EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME")
+VECTOR_STORE_PATH = os.getenv("VECTOR_STORE_PATH")
+PDF_STORAGE_PATH = os.getenv("PDF_STORAGE_PATH")
 
 class VectorStore:
     def __init__(self, store_path, embedding_model_name):
@@ -24,21 +24,19 @@ class VectorStore:
         self.texts = []
 
         if store_path and os.path.exists(store_path):
-            self._load_index_and_texts(store_path)
+            logging.debug(f"Loading existing FAISS index from {store_path}")
+            self.index = faiss.read_index(store_path)
+            pickle_path = f"{store_path}.pickle"
+            if os.path.exists(pickle_path):
+                with open(pickle_path, "rb") as f:
+                    self.texts = pickle.load(f)
+                logging.debug(f"Loaded {len(self.texts)} texts from {pickle_path}")
+            else:
+                logging.warning(f"Pickle file {pickle_path} not found. Texts will not be loaded.")
         else:
+            # Initialize a new FAISS index
+            self.index = None
             logging.debug("Creating a new FAISS index store.")
-
-    def _load_index_and_texts(self, store_path):
-        """Load FAISS index and texts from stored files."""
-        logging.debug(f"Loading existing FAISS index from {store_path}")
-        self.index = faiss.read_index(store_path)
-        pickle_path = f"{store_path}.pickle"
-        if os.path.exists(pickle_path):
-            with open(pickle_path, "rb") as f:
-                self.texts = pickle.load(f)
-            logging.debug(f"Loaded {len(self.texts)} texts from {pickle_path}")
-        else:
-            logging.warning(f"Pickle file {pickle_path} not found. Texts will not be loaded.")
 
     def embed_documents(self, documents):
         """Generate embeddings for a list of documents."""
@@ -47,38 +45,39 @@ class VectorStore:
         return embeddings
 
     def load_documents(self, pdf_directory):
-    """Load and split documents from the specified directory."""
-    documents = []
+        """Load and split documents from the specified directory."""
+        documents = []
 
-    # Iterate over all PDF files in the directory
-    for pdf_file in os.listdir(pdf_directory):
-        if pdf_file.endswith(".pdf"):
-            file_path = os.path.join(pdf_directory, pdf_file)
-            logging.debug(f"Loading PDF: {file_path}")
+        # Iterate over all PDF files in the directory
+        for pdf_file in os.listdir(pdf_directory):
+            if pdf_file.endswith(".pdf"):
+                file_path = os.path.join(pdf_directory, pdf_file)
+                logging.debug(f"Loading PDF: {file_path}")
 
-            try:
-                # Load and extract text from each PDF using fitz
-                with fitz.open(file_path) as pdf_document:
-                    text = ""
-                    for page_num in range(pdf_document.page_count):
-                        page = pdf_document.load_page(page_num)
-                        text += page.get_text()
-                    documents.append(text)
-                    logging.debug(f"Extracted text from {pdf_file}: {text[:100]}...")  # Log first 100 characters
-            except Exception as e:
-                logging.error(f"Error loading PDF {file_path}: {e}")
-                continue
+                try:
+                    # Load and extract text from each PDF using fitz
+                    with fitz.open(file_path) as pdf_document:
+                        text = ""
+                        for page_num in range(pdf_document.page_count):
+                            page = pdf_document.load_page(page_num)
+                            text += page.get_text()
+                        documents.append(text)
+                        logging.debug(f"Extracted text from {pdf_file}: {text[:100]}...")  # Log first 100 characters
+                except Exception as e:
+                    logging.error(f"Error loading PDF {file_path}: {e}")
+                    continue
 
-    # Embed and store the documents
-    self.texts.extend(documents)
-    if documents:
-        embeddings = self.embed_documents(documents)
-        if self.index is None:
-            self.index = faiss.IndexFlatL2(embeddings.shape[1])  # Initialize FAISS index with dimension
-            logging.debug("Initialized new FAISS index.")
-        self.index.add(embeddings)
-        logging.debug(f"Added {embeddings.shape[0]} embeddings to the FAISS index.")
+        # Embed and store the documents
+        self.texts.extend(documents)
+        if documents:
+            embeddings = self.embed_documents(documents)
+            if self.index is None:
+                self.index = faiss.IndexFlatL2(embeddings.shape[1])  # Initialize FAISS index with dimension
+                logging.debug("Initialized new FAISS index.")
+            self.index.add(embeddings)
+            logging.debug(f"Added {embeddings.shape[0]} embeddings to the FAISS index.")
 
+        logging.debug(f"Loaded and added {len(documents)} documents to the vector store.")
 
     def save_store(self):
         """Save the FAISS index and texts to files."""
@@ -98,19 +97,22 @@ class VectorStore:
             return []
 
         query_embedding = self.embed_documents([query])
+        logging.debug(f"Query embedding shape: {query_embedding.shape}")
+
         distances, indices = self.index.search(query_embedding, k)
-        results = self._get_texts_from_indices(indices)
+        logging.debug(f"Distances: {distances}")
+        logging.debug(f"Indices: {indices}")
 
-        return results
-
-    def _get_texts_from_indices(self, indices):
-        """Retrieve texts based on indices from FAISS search results."""
         results = []
         for idx in indices[0]:
-            if 0 <= idx < len(self.texts):
+            if idx >= 0 and idx < len(self.texts):
                 results.append(self.texts[idx])
             else:
                 logging.debug(f"Index out of range or not found: {idx}")
+
+        if not results:
+            logging.debug(f"No relevant texts found for query: {query}")
+
         return results
 
     def has_texts(self):
@@ -132,6 +134,7 @@ if __name__ == "__main__":
     query = "Wie hoch ist die Grundzulage?"
     results = vector_store.query(query)
     print("Query Results:", results)
+
 
 
 
