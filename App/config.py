@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.DEBUG)
 load_dotenv()
 
 # General settings
-MODEL_NAME = os.getenv("MODEL_NAME", "dbmdz/german-gpt2")
+MODEL_NAME = os.getenv("MODEL_NAME", "bigscience/bloom-560m")
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2")
 
 # Function to initialize the LLM
