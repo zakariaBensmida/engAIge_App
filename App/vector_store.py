@@ -47,25 +47,38 @@ class VectorStore:
         return embeddings
 
     def load_documents(self, pdf_directory):
-        """Load, extract, and embed PDF documents from the specified directory."""
-        pdf_extractor = PDFExtractor(pdf_directory)
-        documents = pdf_extractor.extract_texts()
-        
-        if documents:
-            self._add_documents_to_store(documents)
-        logging.debug(f"Loaded and added {len(documents)} documents to the vector store.")
+    """Load and split documents from the specified directory."""
+    documents = []
 
-    def _add_documents_to_store(self, documents):
-        """Embed and add documents to the FAISS index."""
-        self.texts.extend(documents)
+    # Iterate over all PDF files in the directory
+    for pdf_file in os.listdir(pdf_directory):
+        if pdf_file.endswith(".pdf"):
+            file_path = os.path.join(pdf_directory, pdf_file)
+            logging.debug(f"Loading PDF: {file_path}")
+
+            try:
+                # Load and extract text from each PDF using fitz
+                with fitz.open(file_path) as pdf_document:
+                    text = ""
+                    for page_num in range(pdf_document.page_count):
+                        page = pdf_document.load_page(page_num)
+                        text += page.get_text()
+                    documents.append(text)
+                    logging.debug(f"Extracted text from {pdf_file}: {text[:100]}...")  # Log first 100 characters
+            except Exception as e:
+                logging.error(f"Error loading PDF {file_path}: {e}")
+                continue
+
+    # Embed and store the documents
+    self.texts.extend(documents)
+    if documents:
         embeddings = self.embed_documents(documents)
-
         if self.index is None:
-            self.index = faiss.IndexFlatL2(embeddings.shape[1])  # Initialize FAISS index
+            self.index = faiss.IndexFlatL2(embeddings.shape[1])  # Initialize FAISS index with dimension
             logging.debug("Initialized new FAISS index.")
-
         self.index.add(embeddings)
         logging.debug(f"Added {embeddings.shape[0]} embeddings to the FAISS index.")
+
 
     def save_store(self):
         """Save the FAISS index and texts to files."""
