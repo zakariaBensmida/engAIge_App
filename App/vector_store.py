@@ -40,7 +40,7 @@ class VectorStore:
         documents = []
 
         # Iterate over all PDF files in the directory
-        for pdf_file in os.listdir(pdf_directory="./App/pdfs"):
+        for pdf_file in os.listdir("./App/pdfs"):
             if pdf_file.endswith(".pdf"):
                 file_path = os.path.join(pdf_directory, pdf_file)
                 logging.debug(f"Loading PDF: {file_path}")
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 
     # Load documents from the PDF directory
     pdf_directory = './path_to_your_pdf_directory'  # Specify your PDF directory
-    vector_store.load_documents(pdf_directory)
+    vector_store.load_documents("./App/pdfs")
 
     # Save the vector store
     vector_store.save_store()
