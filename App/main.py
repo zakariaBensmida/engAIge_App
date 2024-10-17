@@ -3,12 +3,12 @@ import os
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
-from App.models import UploadResponse, QueryRequest, QueryResponse
-from App.pdf_extractor import extract_main_content
-from App.vector_store import VectorStore
-from App.query_handler import QueryHandler
-from App.config import get_llm, get_embeddings
-from App.utils import ensure_directory
+from .models import UploadResponse, QueryRequest, QueryResponse
+from .pdf_extractor import extract_main_content
+from .vector_store import VectorStore
+from .query_handler import QueryHandler  # Use relative import
+from .config import get_llm, get_embeddings
+from .utils import ensure_directory
 
 # Enable debug logging
 logging.basicConfig(level=logging.DEBUG)
