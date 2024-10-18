@@ -33,7 +33,7 @@ class QueryHandler:
 
 # Example usage
 if __name__ == "__main__":
-    from App.vector_store import VectorStore
+    from vector_store import VectorStore
 
     # Initialize the vector store (replace with your actual parameters)
     vector_store = VectorStore(store_path='./vector_store/index.faiss', embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME"))
