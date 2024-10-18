@@ -6,9 +6,9 @@ from fastapi.templating import Jinja2Templates
 from .models import UploadResponse, QueryRequest, QueryResponse
 from .pdf_extractor import extract_main_content
 from vector_store import VectorStore
-from query_handler import QueryHandler  # Use relative import
-from config import get_llm, get_embeddings
-from utils import ensure_directory
+from .query_handler import QueryHandler  # Use relative import
+from .config import get_llm, get_embeddings
+from .utils import ensure_directory
 
 # Enable debug logging
 logging.basicConfig(level=logging.DEBUG)
