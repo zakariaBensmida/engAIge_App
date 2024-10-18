@@ -6,6 +6,7 @@ import logging
 import fitz  # PyMuPDF for PDF extraction
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
+from typing import List
 
 # Load environment variables from .env
 load_dotenv()
@@ -16,7 +17,7 @@ VECTOR_STORE_PATH = os.getenv("VECTOR_STORE_PATH")
 PDF_STORAGE_PATH = os.getenv("PDF_STORAGE_PATH")
 
 class VectorStore:
-    def __init__(self, store_path, embedding_model_name):
+    def __init__(self, store_path: str, embedding_model_name: str):
         self.store_path = store_path
         self.embedding_model_name = embedding_model_name
         self.model = SentenceTransformer(embedding_model_name)
@@ -38,13 +39,13 @@ class VectorStore:
             self.index = None
             logging.debug("Creating a new FAISS index store.")
 
-    def embed_documents(self, documents):
+    def embed_documents(self, documents: List[str]) -> np.ndarray:
         """Generate embeddings for a list of documents."""
         embeddings = self.model.encode(documents, show_progress_bar=True)
         logging.debug(f"Generated embeddings shape: {embeddings.shape}")
         return embeddings
 
-    def load_documents(self, pdf_directory):
+    def load_documents(self, pdf_directory: str) -> None:
         """Load and split documents from the specified directory."""
         documents = []
 
@@ -67,19 +68,19 @@ class VectorStore:
                     logging.error(f"Error loading PDF {file_path}: {e}")
                     continue
 
-        # Embed and store the documents
-        self.texts.extend(documents)
+        # Embed and store the documents if any are found
         if documents:
+            self.texts.extend(documents)
             embeddings = self.embed_documents(documents)
             if self.index is None:
                 self.index = faiss.IndexFlatL2(embeddings.shape[1])  # Initialize FAISS index with dimension
                 logging.debug("Initialized new FAISS index.")
             self.index.add(embeddings)
             logging.debug(f"Added {embeddings.shape[0]} embeddings to the FAISS index.")
+        else:
+            logging.warning("No documents loaded; embeddings not created.")
 
-        logging.debug(f"Loaded and added {len(documents)} documents to the vector store.")
-
-    def save_store(self):
+    def save_store(self) -> None:
         """Save the FAISS index and texts to files."""
         if self.store_path:
             faiss.write_index(self.index, self.store_path)
@@ -90,7 +91,7 @@ class VectorStore:
         else:
             raise ValueError("Store path cannot be None or empty.")
 
-    def query(self, query, k=5):
+    def query(self, query: str, k: int = 5) -> List[str]:
         """Search the FAISS index for the top k results for a given query."""
         if not self.texts:
             logging.debug("No texts available in the vector store.")
@@ -115,7 +116,8 @@ class VectorStore:
 
         return results
 
-    def has_texts(self):
+    def has_texts(self) -> bool:
+        """Check if there are texts in the vector store."""
         return len(self.texts) > 0
 
 # Example usage for standalone testing
@@ -134,6 +136,7 @@ if __name__ == "__main__":
     query = "Wie hoch ist die Grundzulage?"
     results = vector_store.query(query)
     print("Query Results:", results)
+
 
 
 
