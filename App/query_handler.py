@@ -19,27 +19,32 @@ class QueryHandler:
         relevant_texts = self.vector_store.query(query, k=top_k)
         return relevant_texts
 
-    def get_answer(self, query: str, max_length: int = 100, max_new_tokens: int = 50) -> str:
-        # Retrieve relevant texts for the given query
-        relevant_texts = self.get_relevant_texts(query)
+   def get_answer(self, query: str, max_length: int = 50, max_new_tokens: int = 30) -> str:
+    # Retrieve relevant texts for the given query
+    relevant_texts = self.get_relevant_texts(query)
 
-        # Combine relevant texts into a context
-        context = "\n".join(relevant_texts)
-        prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
+    # Combine relevant texts into a context
+    context = "\n".join(relevant_texts)
+    prompt = f"Context:\n{context}\n\nQuestion: {query}\n\nPlease provide a concise answer:"
 
-        # Generate the answer using the LLM
-        try:
-            response = self.llm(
-                prompt,
-                truncation=True,
-                max_length=max_length,
-                max_new_tokens=max_new_tokens
-            )
-            answer = response[0]['generated_text'].strip()
-            return answer
-        except Exception as e:
-            logging.error(f"Error generating answer: {e}")
-            return "Sorry, I couldn't generate an answer at this time."
+    # Generate the answer using the LLM
+    try:
+        response = self.llm(
+            prompt,
+            truncation=True,
+            max_length=max_length,
+            max_new_tokens=max_new_tokens
+        )
+        answer = response[0]['generated_text'].strip()
+        
+        # Optionally trim the answer to the first sentence
+        answer = answer.split('.')[0] + '.' if '.' in answer else answer
+        
+        return answer
+    except Exception as e:
+        logging.error(f"Error generating answer: {e}")
+        return "Sorry, I couldn't generate an answer at this time."
+
 
 # Example usage
 if __name__ == "__main__":
