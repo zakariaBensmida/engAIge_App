@@ -1,7 +1,7 @@
 import os
 from transformers import pipeline
 from typing import List
-from App.vector_store import VectorStore  # Adjust the import path as necessary
+from vector_store import VectorStore  # Adjust the import path as necessary
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
