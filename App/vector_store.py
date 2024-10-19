@@ -58,12 +58,12 @@ class VectorStore:
                 try:
                     # Load and extract text from each PDF using fitz
                     with fitz.open(file_path) as pdf_document:
-                        text = ""
                         for page_num in range(pdf_document.page_count):
                             page = pdf_document.load_page(page_num)
-                            text += page.get_text()
-                        documents.append(text)
-                        logging.debug(f"Extracted text from {pdf_file}: {text[:100]}...")  # Log first 100 characters
+                            text = page.get_text()
+                            if text.strip():  # Only add if the page contains text
+                                documents.append(text)
+                                logging.debug(f"Extracted text from page {page_num} of {pdf_file}: {text[:100]}...")  # Log first 100 characters
                 except Exception as e:
                     logging.error(f"Error loading PDF {file_path}: {e}")
                     continue
@@ -113,6 +113,10 @@ class VectorStore:
 
         if not results:
             logging.debug(f"No relevant texts found for query: {query}")
+
+        logging.debug(f"Query results for '{query}':")
+        for i, result in enumerate(results):
+            logging.debug(f"Result {i + 1}: {result[:200]}...")  # Log first 200 characters
 
         return results
 
