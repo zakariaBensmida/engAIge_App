@@ -32,7 +32,9 @@ class QueryHandler:
         try:
             response = self.llm(
                 prompt,
-                max_length=max_length
+                max_length=max_length,
+                truncation=True,
+                max_new_tokens=80
             )
             answer = response[0]['generated_text'].strip()
             
