@@ -20,7 +20,7 @@ class QueryHandler:
         relevant_texts = self.vector_store.query(query, k=top_k)
         return relevant_texts
 
-    def get_answer(self, query: str, max_length: int = 50,max_new_tokens=150) -> str:
+    def get_answer(self, query: str, max_length: int = 50) -> str:
         # Retrieve relevant texts for the given query
         relevant_texts = self.get_relevant_texts(query)
 
@@ -33,8 +33,7 @@ class QueryHandler:
             response = self.llm(
                 prompt,
                 truncation=True,
-                max_length=max_length,
-                max_new_tokens=max_new_tokens
+                max_length=max_length
             )
             answer = response[0]['generated_text'].strip()
             
