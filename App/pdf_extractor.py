@@ -2,107 +2,67 @@ import fitz  # PyMuPDF
 import re
 import os
 
-def is_toc_line(line: str) -> bool:
-    toc_patterns = [
-        r'^\d+\s*-\s*\d+$',
-        r'^[IVXLCDM]+\.$',
-        r'^\d+\.$',
-        r'^[a-z]+\)$',
-        r'^\(\d+\)',
-        r'^[A-ZÄÖÜ]\.\s',
-        r'^Seite[:\s]*\d+$',
-        r'^\w+\s+\d+\s*-\s*\d+$',
-        r'^S\.\s*\d+$',
-        r'^\d+/\d+$',
-        r'^Seite\s+\d+$',
-        r'^\d+\s+[A-Za-zÄÖÜäöüß]+',
-    ]
+def extract_text_excluding_toc(pdf_path):
+    # Initialize variables
+    extracted_text = ""
+    cleaned_text = ""
+    start_page = None
+    end_page = None
+    
+    # Define regex patterns
+    email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+    phone_pattern = r'\(?\b\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}\b'  # Simple phone pattern
+    header_footer_pattern = r'^[A-Z0-9 .,-]+$'  # Basic pattern for headers/footers
+    
+    # Open the PDF document
+    document = fitz.open(pdf_path)
 
-    for pattern in toc_patterns:
-        if re.match(pattern, line.strip()):
-            return True
-    return False
+    # Find the start and end pages of the TOC
+    for page_num in range(len(document)):
+        page = document[page_num]
+        page_text = page.get_text("text")
 
-def is_main_title_line(line: str) -> bool:
-    if len(line) < 10:
-        return False
-    if re.match(r'^[A-ZÄÖÜ][A-Za-zÄÖÜäöüß\s\-&.,()§]+(:)?$', line.strip()):
-        if not re.search(r'\d', line):
-            return True
-    return False
+        # Check for 'Inhaltsübersicht' to determine TOC section
+        if 'Inhaltsübersicht' in page_text:
+            start_page = page_num
+            # Assuming the TOC ends on the next page
+            end_page = start_page + 1
+            break
 
-def extract_main_content(pdf_path: str) -> str:
-    """
-    Extracts main content from a PDF, excluding the Table of Contents (ToC).
-    
-    Args:
-        pdf_path (str): Path to the PDF file.
-    
-    Returns:
-        str: Extracted main content.
-    """
-    doc = fitz.open(pdf_path)
-    full_text = ""
-    for page_num in range(doc.page_count):
-        page = doc.load_page(page_num)
-        full_text += page.get_text("text") + "\n"  # Get all text from the page
-    doc.close()
-    
-    # Split at 'Inhaltsübersicht' (Assuming the PDF is in German)
-    sections = full_text.split('Inhaltsübersicht')
-    if len(sections) < 2:
-        print("No 'Inhaltsübersicht' found in the document.")
-        return full_text  # Return full text if ToC not found
-    
-    post_toc_text = sections[1]
-    lines = post_toc_text.split('\n')
-    
-    extracted_data = []
-    current_title = None
-    current_content = []
-    capturing = False
-    
-    toc_end_pattern = re.compile(r'^Seite[:\s]*\d+$', re.IGNORECASE)
-    
-    for line in lines:
-        stripped_line = line.strip()
-        
-        if not capturing:
-            if toc_end_pattern.match(stripped_line):
-                capturing = True
-            continue  # Skip lines until end of ToC
-        
-        # Skip residual ToC lines
-        if is_toc_line(stripped_line):
-            continue
-        
-        # Identify main titles
-        if is_main_title_line(stripped_line):
-            if current_title and current_content:
-                extracted_data.append({
-                    'title': current_title,
-                    'content': ' '.join(current_content)
-                })
-            current_title = stripped_line
-            current_content = []
-        else:
-            if current_title:
-                current_content.append(stripped_line)
-    
-    # Append the last section
-    if current_title and current_content:
-        extracted_data.append({
-            'title': current_title,
-            'content': ' '.join(current_content)
-        })
-    
-    # Combine all content
-    combined_content = "\n".join([section['content'] for section in extracted_data])
-    
-    # Debug: Print combined content for verification
-    print("Combined extracted content:\n", combined_content)
+    # If TOC was found, extract text outside of the TOC section
+    for page_num in range(len(document)):
+        page = document[page_num]
+        page_text = page.get_text("text")
 
-    return combined_content
+        # Only add text if it is outside the TOC section
+        if (start_page is None or page_num < start_page) or (end_page is None or page_num > end_page):
+            lines = page_text.split('\n')
+            for line in lines:
+                # Remove lines matching email, phone, and header/footer patterns
+                if (re.search(email_pattern, line) or 
+                    re.search(phone_pattern, line) or 
+                    re.match(header_footer_pattern, line) or
+                    line.strip() == ''):  # Skip empty lines
+                    continue  # Skip these lines
+                cleaned_text += line + "\n"  # Keep the clean lines
+
+    # Close the document
+    document.close()
+    
+    return cleaned_text.strip()  # Return cleaned text without trailing newlines
+
+def extract_main_content(folder_path):
+    combined_cleaned_text = ""
+    
+    # Iterate over all PDF files in the specified folder
+    for filename in os.listdir(folder_path):
+        if filename.lower().endswith('.pdf'):
+            pdf_path = os.path.join(folder_path, filename)
+            print(f"Processing: {pdf_path}")  # Print the current PDF being processed
+            cleaned_text = extract_text_excluding_toc(pdf_path)
+            combined_cleaned_text += cleaned_text + "\n\n"  # Add cleaned text to the combined result
+
+    return combined_cleaned_text.strip()  # Return combined text without trailing newlines
 
 
 if __name__ == "__main__":
