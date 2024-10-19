@@ -1,16 +1,24 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Form
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 app = FastAPI()
 
-# Datenmodell für die POST-Anfrage
-class QueryRequest(BaseModel):
-    query: str
+# Initialisierung der Jinja2-Templates
+templates = Jinja2Templates(directory="templates")
 
-# POST-Endpunkt, um eine Anfrage zu verarbeiten
+# Beispiel-GET-Endpunkt für die HTML-Seite
+@app.get("/", response_class=HTMLResponse)
+def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+# POST-Endpunkt zum Verarbeiten von Anfragen
 @app.post("/query")
-def process_query(request: QueryRequest):
-    return {"answer": f"Die Anfrage lautet: {request.query}"}
+def process_query(query: str = Form(...)):
+    # Simulierte Logik zur Beantwortung der Anfrage
+    answer = f"Die Antwort auf '{query}' ist: [hier die Antwort einfügen]."
+    return {"answer": answer}
 
 if __name__ == "__main__":
     import uvicorn
