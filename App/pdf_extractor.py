@@ -69,5 +69,5 @@ if __name__ == "__main__":
     pdfs_dir = os.path.join(os.path.dirname(__file__), "pdfs")  # Adjust to your PDF path
     combined_content = extract_main_content(pdfs_dir)  # Call extract_main_content with the correct folder path
 
-    print(f"Combined extracted content:\n{combined_content[:200]}...")  # Print first 200 characters of combined content
+    print(f"Combined extracted content:\n{combined_content}...")  # Print first 200 characters of combined content
 
