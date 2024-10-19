@@ -1,42 +1,69 @@
+import logging
+from vector_store import VectorStore  # Import the VectorStore class
+from transformers import pipeline, AutoTokenizer
+import torch
 import os
-import logging  # Import logging for error handling
-from transformers import pipeline
-from typing import List
-from .vector_store import VectorStore  # Adjust the import path as necessary
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
-class QueryHandler:
-    def __init__(self, vector_store: VectorStore):
-        # Retrieve the LLM model name from the environment variables
-        llm_model_name = os.getenv("LLM_MODEL_NAME", "gpt2")  # Default to "gpt2" if not found
-        self.llm = pipeline("text-generation", model=llm_model_name)
-        self.vector_store = vector_store
+# Initialize the LLM for text generation
+model_name = "bigscience/bloom-560m"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+llm_pipe = pipeline(
+    "text-generation",
+    model=model_name,
+    tokenizer=tokenizer,
+    torch_dtype=torch.bfloat16,
+    device_map="auto"
+)
 
-    def get_relevant_texts(self, query: str, top_k: int = 5) -> List[str]:
-        # Retrieve relevant texts from the vector store based on the query
-        relevant_texts = self.vector_store.query(query, k=top_k)
-        return relevant_texts
+# Load environment variables
+VECTOR_STORE_PATH = os.getenv("VECTOR_STORE_PATH")
+EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME")
 
-    def get_answer(self, query: str, max_length: int = 150) -> str:
-        # Retrieve relevant texts for the given query
-        relevant_texts = self.get_relevant_texts(query)
+# Initialize the VectorStore
+vector_store = VectorStore(store_path=VECTOR_STORE_PATH, embedding_model_name=EMBEDDING_MODEL_NAME)
 
-        # Combine relevant texts into a context
-        context = "\n".join(relevant_texts)
-        prompt = f"Context:\n{context}\n\nQuestion: {query}\n\nPlease provide a concise answer:"
 
-        # Generate the answer using the LLM
-        try:
-            response = self.llm(
-                prompt,
-                max_length=max_length,
-                truncation=True,
-                max_new_tokens=80
-            )
-            answer = response[0]['generated_text'].strip()
+def query_and_generate_answer(query: str) -> str:
+    """Query the vector store, retrieve relevant documents, and generate an answer using the LLM."""
+    logging.debug(f"Received query: {query}")
+    
+    # Query the vector store for relevant documents
+    retrieved_texts = vector_store.query(query)
+    
+    if not retrieved_texts:
+        return "No relevant information found."
+
+    # Prepare the context for the LLM
+    context = "\n".join(retrieved_texts)
+    prompt = f"Answer the question using the context below.\nContext: {context}\nQuestion: {query}\nAnswer:"
+    
+    logging.debug(f"Generated prompt for LLM: {prompt[:500]}")  # Log first 500 chars of the prompt
+    
+    # Use the LLM to generate an answer based on the prompt
+    answer = generate_answer(prompt)
+    
+    logging.debug(f"Generated answer: {answer}")
+    return answer
+
+
+def generate_answer(prompt: str) -> str:
+    """Generate an answer using the LLM."""
+    sequences = llm_pipe(
+        prompt,
+        max_new_tokens=50,
+        do_sample=True,
+        top_k=10,
+        return_full_text=False,
+    )
+    
+    # Extract and return the generated answer from the sequence
+    return sequences[0]['generated_text'].strip()
+
+
             
             # Optionally trim the answer to the first sentence
             answer = answer.split('.')[0] + '.' if '.' in answer else answer
