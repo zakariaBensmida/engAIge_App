@@ -15,12 +15,12 @@ class QueryHandler:
         self.llm = pipeline("text-generation", model=llm_model_name)
         self.vector_store = vector_store
 
-    def get_relevant_texts(self, query: str, top_k: int = 50) -> List[str]:
+    def get_relevant_texts(self, query: str, top_k: int = 5) -> List[str]:
         # Retrieve relevant texts from the vector store based on the query
         relevant_texts = self.vector_store.query(query, k=top_k)
         return relevant_texts
 
-    def get_answer(self, query: str, max_length: int = 50, max_new_tokens: int = 100) -> str:
+    def get_answer(self, query: str, max_length: int = 50) -> str:
         # Retrieve relevant texts for the given query
         relevant_texts = self.get_relevant_texts(query)
 
