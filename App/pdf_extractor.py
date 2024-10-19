@@ -3,8 +3,8 @@ import re
 import os
 
 def extract_text_excluding_toc(pdf_path):
+    """Extract text from a PDF while excluding the Table of Contents (ToC)."""
     # Initialize variables
-    extracted_text = ""
     cleaned_text = ""
     start_page = None
     end_page = None
@@ -52,6 +52,7 @@ def extract_text_excluding_toc(pdf_path):
     return cleaned_text.strip()  # Return cleaned text without trailing newlines
 
 def extract_main_content(folder_path):
+    """Extract and combine cleaned text from all PDF files in the specified folder."""
     combined_cleaned_text = ""
     
     # Iterate over all PDF files in the specified folder
@@ -64,13 +65,9 @@ def extract_main_content(folder_path):
 
     return combined_cleaned_text.strip()  # Return combined text without trailing newlines
 
-
 if __name__ == "__main__":
     pdfs_dir = os.path.join(os.path.dirname(__file__), "pdfs")  # Adjust to your PDF path
-    pdf_files = [f for f in os.listdir(pdfs_dir) if f.endswith('.pdf')]
+    combined_content = extract_main_content(pdfs_dir)  # Call extract_main_content with the correct folder path
 
-    for pdf_file in pdf_files:
-        pdf_path = os.path.join(pdfs_dir, pdf_file)
-        print(f"Processing: {pdf_file}")
-        extracted_content = extract_main_content(pdf_path)
-        print(f"Extracted content from {pdf_file}:\n{extracted_content[:200]}...")  # Print first 200 characters
+    print(f"Combined extracted content:\n{combined_content[:200]}...")  # Print first 200 characters of combined content
+
