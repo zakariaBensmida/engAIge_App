@@ -23,7 +23,8 @@ vector_store_path = os.getenv('VECTOR_STORE_PATH', 'C:\\Users\\zakar\\engAIge_Ap
 llm_instance = LLM(model_name=llm_model_name)
 
 # Initialize the VectorStore with the specified path
-vector_store_instance = VectorStore(vector_store_path)
+vector_store_instance = VectorStore(vector_store_path, embedding_model_name)  # Add the embedding model name
+
 
 # Initialize QueryHandler with the LLM instance and VectorStore instance
 handler = QueryHandler(llm=llm_instance, vector_store=vector_store_instance)
