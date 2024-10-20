@@ -27,7 +27,11 @@ class VectorStore:
 # vector_store.add_documents(load_pdfs("./pdf"))
 # results = vector_store.retrieve("Was ist KI?", top_k=3)
 
-
+if __name__ == "__main__":
+    # Example: running this file directly to create a vector store.
+    text = "This is a sample text for embedding."
+    embedding = embed_text(text)
+    print("Embedding created:", embedding)
 
 
 
