@@ -8,7 +8,7 @@ class QueryHandler:
 
     def handle_query(self, query: str) -> str:
         """Handles a query by retrieving relevant documents and generating an answer."""
-        # Retrieve relevant documents (here, using dummy context for example)
+        # Retrieve relevant documents
         relevant_docs = self.vector_store.retrieve(query)
         context = " ".join([doc['text'] for doc in relevant_docs]) if relevant_docs else "No relevant documents found."
 
@@ -23,7 +23,7 @@ class QueryHandler:
 
 if __name__ == "__main__":
     # Create an instance of the LLM class
-    llm_instance = LLM()  # Make sure this is correctly initialized
+    llm_instance = LLM(model_name="gpt2")  # Specify your model if needed
 
     # Initialize the QueryHandler with the LLM instance
     handler = QueryHandler(llm=llm_instance)
