@@ -3,22 +3,18 @@ import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
 
-# vector_store.py
-from sentence_transformers import SentenceTransformer
-import faiss
-import numpy as np
-import os
-
 class VectorStore:
     def __init__(self, store_path: str, embedding_model_name: str):
-        self.store_path = store_path
+        self.store_path = store_path  # Correctly refer to self.store_path
         self.embedding_model_name = embedding_model_name
-        # Initialize your vector store here
         self.index = None
         self.texts = []
+        
+        # Initialize the SentenceTransformer model
+        self.model = SentenceTransformer(self.embedding_model_name)
 
         # Load existing index if it exists
-        if os.path.exists(self.vector_store_path):
+        if os.path.exists(self.store_path):  # Use self.store_path instead
             self.load()
 
     def add_texts(self, texts):
@@ -30,10 +26,10 @@ class VectorStore:
         self.save()  # Save the updated index
 
     def save(self):
-        faiss.write_index(self.index, self.vector_store_path)  # Save the index to disk
+        faiss.write_index(self.index, self.store_path)  # Save the index to disk
 
     def load(self):
-        self.index = faiss.read_index(self.vector_store_path)  # Load index from disk
+        self.index = faiss.read_index(self.store_path)  # Load index from disk
         # You may also want to load the texts if they are stored separately
 
     def retrieve(self, query, k=5):
@@ -61,6 +57,7 @@ if __name__ == "__main__":
     query = "document"
     relevant_docs = vector_store_instance.retrieve(query)
     print(relevant_docs)
+
 
 
 
