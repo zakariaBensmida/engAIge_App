@@ -2,18 +2,14 @@ from vector_store import VectorStore
 from llm import LLM
 
 class QueryHandler:
-    def __init__(self):
-        self.vector_store = VectorStore()
-        self.llm = LLM()
+    def __init__(self, llm):
+        self.llm = llm
 
-    def handle_query(self, query: str) -> str:
-        """Handles a query by retrieving relevant documents and generating an answer."""
-        # Retrieve relevant documents
-        relevant_docs = self.vector_store.retrieve(query)
-        context = " ".join([doc['text'] for doc in relevant_docs])
-
-        # Generate an answer using the context
+    def handle_query(self, query):
+        context = "This is document 3. This is document 2. This is document 1."
+        print(f"Query: {query}")  # Check query content before processing
         answer = self.llm.generate(context, query)
+        print(f"Answer: {answer}")  # Check what the LLM generates
         return answer
 
 if __name__ == "__main__":
