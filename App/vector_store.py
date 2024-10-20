@@ -10,9 +10,10 @@ import numpy as np
 import os
 
 class VectorStore:
-    def __init__(self, vector_store_path: str, embedding_model_name: str):
-        self.vector_store_path = vector_store_path
-        self.model = SentenceTransformer(embedding_model_name)
+    def __init__(self, store_path: str, embedding_model_name: str):
+        self.store_path = store_path
+        self.embedding_model_name = embedding_model_name
+        # Initialize your vector store here
         self.index = None
         self.texts = []
 
