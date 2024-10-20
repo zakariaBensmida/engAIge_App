@@ -1,4 +1,4 @@
-from vector_store import VectorStore
+from .vector_store import VectorStore
 from llm import LLM
 
 class QueryHandler:
