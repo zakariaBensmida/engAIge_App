@@ -1,29 +1,96 @@
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+import logging
+import os
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
-from fastapi import Request
-from pydantic import BaseModel
+from .models import UploadResponse, QueryRequest, QueryResponse
+from .pdf_extractor import extract_main_content
+from .vector_store import VectorStore
+from .query_handler import QueryHandler
+from .config import get_llm, get_embeddings
+from .utils import ensure_directory
+
+# Enable debug logging
+logging.basicConfig(level=logging.DEBUG)
 
 app = FastAPI()
 
-# Adjust the path to your templates directory
-templates = Jinja2Templates(directory="./templates")  # Go one level up to access the templates folder
+# Set up the templates directory
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "../templates"))
 
-@app.get("/", response_class=HTMLResponse)
+# Initialize LLM and embeddings
+llm = get_llm()
+embeddings = get_embeddings()
+
+# Ensure PDF storage directory exists
+pdf_storage_path = os.getenv("PDF_STORAGE_PATH")
+ensure_directory(pdf_storage_path)
+
+# Initialize VectorStore
+vector_store = VectorStore(
+    store_path=os.getenv("VECTOR_STORE_PATH", "./vector_store/index.faiss"),
+    embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2")
+)
+
+# Initialize QueryHandler
+query_handler = QueryHandler(vector_store=vector_store)
+
+@app.get("/")
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-class QueryRequest(BaseModel):
-    query: str
+@app.post("/upload", response_model=UploadResponse)
+async def upload_pdf(file: UploadFile = File(...)):
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
-@app.post("/query")
-async def query(request: QueryRequest):
-    # Your logic to handle the query
-    return {"message": "Received query", "query": request.query}
+    file_location = os.path.join(pdf_storage_path, file.filename)
+    
+    try:
+        with open(file_location, "wb") as f:
+            f.write(await file.read())
+    except Exception as e:
+        logging.error(f"Error saving PDF file: {e}")
+        raise HTTPException(status_code=500, detail=f"Error saving PDF file: {e}")
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    logging.debug(f"PDF saved at: {file_location}")
+
+    # Extract main content from PDF
+    try:
+        content = extract_main_content(file_location)
+        logging.debug(f"Extracted content length: {len(content)}")
+    except Exception as e:
+        logging.error(f"Error extracting PDF content: {e}")
+        raise HTTPException(status_code=500, detail=f"Error extracting PDF content: {e}")
+
+    # Add content to vector store
+    texts = content.split('\n')
+    logging.debug(f"Number of texts to add: {len(texts)}")
+
+    vector_store.add_texts(texts)
+    vector_store.save_store()
+
+    return UploadResponse(message="PDF uploaded and content extracted successfully.", filename=file.filename)
+
+@app.post("/query", response_model=QueryResponse)
+def query_pdf(request: QueryRequest):
+    query = request.query
+    if not query:
+        raise HTTPException(status_code=400, detail="Query cannot be empty.")
+
+    logging.debug(f"Query received: {query}")
+
+    # Generate answer using LLM
+    try:
+        answer = query_handler.get_answer(query)
+        if not answer:
+            raise HTTPException(status_code=500, detail="No answer generated.")
+        logging.debug(f"Generated answer for query '{query}': {answer}")
+    except Exception as e:
+        logging.error(f"Error generating answer: {e}")
+        raise HTTPException(status_code=500, detail=f"Error generating answer: {e}")
+
+    return QueryResponse(answer=answer)
 
 
 
