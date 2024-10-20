@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel  # Import BaseModel for Pydantic models
 from .pdf_extractor import extract_text_from_pdf
 from .vector_store import VectorStore
 from .query_handler import QueryHandler
@@ -31,7 +32,12 @@ vector_store = VectorStore(
     embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2")
 )
 
-# Initialize QueryHandler with both vector_store and llm
+# Define UploadResponse model
+class UploadResponse(BaseModel):
+    message: str
+    filename: str
+
+# Initialize QueryHandler
 query_handler = QueryHandler(vector_store=vector_store, llm=llm)
 
 @app.get("/")
@@ -90,6 +96,7 @@ def query_pdf(request: QueryRequest):
         raise HTTPException(status_code=500, detail=f"Error generating answer: {e}")
 
     return QueryResponse(answer=answer)
+
 
 
 
