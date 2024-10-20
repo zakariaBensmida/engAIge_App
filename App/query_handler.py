@@ -2,8 +2,8 @@ from .vector_store import VectorStore
 from .llm import LLM
 
 class QueryHandler:
-    def __init__(self, llm: LLM):
-        self.vector_store = VectorStore()
+    def __init__(self, llm: LLM, vector_store: VectorStore):
+        self.vector_store = vector_store
         self.llm = llm
 
     def handle_query(self, query: str) -> str:
@@ -22,11 +22,22 @@ class QueryHandler:
         return answer
 
 if __name__ == "__main__":
-    # Create an instance of the LLM class
-    llm_instance = LLM(model_name="gpt2")  # Specify your model if needed
+    from dotenv import load_dotenv
+    import os
 
-    # Initialize the QueryHandler with the LLM instance
-    handler = QueryHandler(llm=llm_instance)
+    # Load environment variables
+    load_dotenv()
+
+    # Create an instance of the LLM class with the model name from the environment
+    llm_model_name = os.getenv('LLM_MODEL_NAME', 'gpt2')
+    llm_instance = LLM(model_name=llm_model_name)
+
+    # Initialize the VectorStore with the specified path
+    vector_store_path = os.getenv('VECTOR_STORE_PATH', 'C:\\Users\\zakar\\engAIge_App\\App\\vector_store.faiss')
+    vector_store_instance = VectorStore(vector_store_path)
+
+    # Initialize the QueryHandler with the LLM and VectorStore instances
+    handler = QueryHandler(llm=llm_instance, vector_store=vector_store_instance)
 
     # Add sample texts to vector store
     sample_texts = ["This is document 1.", "This is document 2.", "This is document 3."]
