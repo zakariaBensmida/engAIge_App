@@ -32,10 +32,16 @@ vector_store = VectorStore(
     embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2")
 )
 
-# Define UploadResponse model
+# Define Pydantic models
 class UploadResponse(BaseModel):
     message: str
     filename: str
+
+class QueryRequest(BaseModel):
+    query: str
+
+class QueryResponse(BaseModel):
+    answer: str
 
 # Initialize QueryHandler
 query_handler = QueryHandler(vector_store=vector_store, llm=llm)
@@ -78,7 +84,7 @@ async def upload_pdf(file: UploadFile = File(...)):
     return UploadResponse(message="PDF uploaded and content extracted successfully.", filename=file.filename)
 
 @app.post("/query", response_model=QueryResponse)
-def query_pdf(request: QueryRequest):
+async def query_pdf(request: QueryRequest):
     query = request.query
     if not query:
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
@@ -96,6 +102,7 @@ def query_pdf(request: QueryRequest):
         raise HTTPException(status_code=500, detail=f"Error generating answer: {e}")
 
     return QueryResponse(answer=answer)
+
 
 
 
