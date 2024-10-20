@@ -16,6 +16,18 @@ class QueryHandler:
         answer = self.llm.generate(context, query)
         return answer
 
+if __name__ == "__main__":
+    # Example test
+    handler = QueryHandler()
+
+    # Add sample texts to vector store
+    sample_texts = ["This is document 1.", "This is document 2.", "This is document 3."]
+    handler.vector_store.add_texts(sample_texts)
+
+    # Handle a query
+    query = "document"
+    print(handler.handle_query(query))
+
 
 
 
