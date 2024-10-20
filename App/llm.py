@@ -7,18 +7,18 @@ class LLM:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForCausalLM.from_pretrained(model_name)
 
+        # Set pad_token to eos_token (since GPT-2 doesn't have a default padding token)
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+
     def generate(self, context: str, query: str, max_new_tokens: int = 50) -> str:
         """Generates an answer based on context and query."""
         input_text = f"Context: {context}\nQuery: {query}"
         inputs = self.tokenizer(input_text, return_tensors="pt", padding=True)
 
-        # Handle the attention mask
-        attention_mask = inputs['attention_mask']
-
-        # Generate a response with controlled max_new_tokens and attention mask
+        # Generate a response with controlled max_new_tokens
         outputs = self.model.generate(
             inputs["input_ids"],
-            attention_mask=attention_mask,
+            attention_mask=inputs["attention_mask"],  # Ensure attention mask is used
             max_new_tokens=max_new_tokens,
             do_sample=True,
             temperature=0.7,  # Adjust temperature for randomness
@@ -33,6 +33,7 @@ if __name__ == "__main__":
     llm = LLM()
     context = "This is document 3. This is document 2. This is document 1."
     query = "What are the documents about?"
-    answer = llm.generate(context, query, max_new_tokens=100)  # Use max_new_tokens instead of max_length
+    answer = llm.generate(context, query, max_new_tokens=100)
     print(answer)
+
 
