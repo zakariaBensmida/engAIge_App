@@ -27,7 +27,7 @@ ensure_directory(pdf_storage_path)
 
 # Initialize VectorStore
 vector_store = VectorStore(
-    store_path=os.getenv("VECTOR_STORE_PATH", "./vector_store/index.faiss"),
+    store_path=os.getenv(
     embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2")
 )
 
