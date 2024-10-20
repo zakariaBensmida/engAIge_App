@@ -3,7 +3,6 @@ import os
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
-from .models import UploadResponse, QueryRequest, QueryResponse
 from .pdf_extractor import extract_main_content
 from .vector_store import VectorStore
 from .query_handler import QueryHandler
