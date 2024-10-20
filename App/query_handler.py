@@ -5,7 +5,7 @@ class QueryHandler:
     def __init__(self, llm):
         self.llm = llm
 
-    def handle_query(self, query):
+    def handle_query(self, query,llm):
         context = "This is document 3. This is document 2. This is document 1."
         print(f"Query: {query}")  # Check query content before processing
         answer = self.llm.generate(context, query)
