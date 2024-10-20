@@ -1,17 +1,33 @@
 
-from transformers import pipeline
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 class LLM:
-    def __init__(self, model_name="google/flan-t5-small"):
-        """Initialize the language model for question-answering."""
-        self.model = pipeline("text2text-generation", model=model_name)
+    def __init__(self, model_name: str = "gpt2"):
+        """Initialize the LLM model and tokenizer."""
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = AutoModelForCausalLM.from_pretrained(model_name)
 
-    def generate(self, context: str, question: str) -> str:
-        """Generate an answer based on the context and the question."""
-        input_text = f"Question: {question}\nContext: {context}"
-        response = self.model(input_text)
-        return response[0]['generated_text']
+    def generate(self, context: str, query: str, max_new_tokens: int = 50) -> str:
+        """Generates an answer based on context and query."""
+        input_text = f"Context: {context}\nQuery: {query}"
+        inputs = self.tokenizer(input_text, return_tensors="pt")
 
-# Example usage:
-# llm = LLM()
-# answer = llm.generate("Berlin is the capital of Germany.", "What is the capital of Germany?")
+        # Generate a response with controlled max_new_tokens
+        outputs = self.model.generate(
+            inputs["input_ids"],
+            max_new_tokens=max_new_tokens,  # Set the maximum number of new tokens
+            do_sample=True,
+            temperature=0.7,  # Adjust temperature for randomness
+        )
+
+        # Decode the output tokens back into a string
+        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return response
+
+if __name__ == "__main__":
+    llm = LLM()
+    context = "This is the context of relevant documents."
+    query = "What is the content of the documents?"
+    answer = llm.generate(context, query, max_new_tokens=100)  # Use max_new_tokens instead of max_length
+    print(answer)
+
