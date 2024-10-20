@@ -1,16 +1,32 @@
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
-from .query_handler import QueryHandler  # Ensure this import matches your file structure
+from dotenv import load_dotenv
+import os
+from .query_handler import QueryHandler
+from .llm import LLM
+from .vector_store import VectorStore  # Import VectorStore if necessary
 
 app = FastAPI()
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Initialize Jinja2 templates
 templates = Jinja2Templates(directory="templates")
 
-# Initialize QueryHandler
-handler = QueryHandler()  # Make sure to pass the required llm if necessary
+# Get the model names and paths from the environment variables
+llm_model_name = os.getenv('LLM_MODEL_NAME', 'bigscience/bloom-560m')
+vector_store_path = os.getenv('VECTOR_STORE_PATH', 'C:\\Users\\zakar\\engAIge_App\\App\\vector_store.faiss')
+
+# Create an instance of the LLM class with the model name from the environment
+llm_instance = LLM(model_name=llm_model_name)
+
+# Initialize the VectorStore with the specified path
+vector_store_instance = VectorStore(vector_store_path)
+
+# Initialize QueryHandler with the LLM instance and VectorStore instance
+handler = QueryHandler(llm=llm_instance, vector_store=vector_store_instance)
 
 # Example GET endpoint for the HTML page
 @app.get("/", response_class=HTMLResponse)
@@ -31,6 +47,7 @@ async def process_query(query: str = Form(...)):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
+
 
 
 
