@@ -1,9 +1,10 @@
+
 import logging
 import os
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel  # Import BaseModel for Pydantic models
+from pydantic import BaseModel
 from .pdf_extractor import extract_text_from_pdf
 from .vector_store import VectorStore
 from .query_handler import QueryHandler
@@ -68,18 +69,22 @@ async def upload_pdf(file: UploadFile = File(...)):
 
     # Extract main content from PDF
     try:
-        content = extract_text_from_pdf(file_location)
-        logging.debug(f"Extracted content length: {len(content)}")
+        content_dict = extract_text_from_pdf(file_location)
+        logging.debug(f"Extracted content dictionary: {content_dict}")
     except Exception as e:
         logging.error(f"Error extracting PDF content: {e}")
         raise HTTPException(status_code=500, detail=f"Error extracting PDF content: {e}")
 
-    # Add content to vector store
-    texts = content.split('\n')
+    # Flatten the extracted paragraphs into a list of texts
+    texts = []
+    for paragraphs in content_dict.values():
+        texts.extend(paragraphs)  # Add each paragraph to the texts list
+
     logging.debug(f"Number of texts to add: {len(texts)}")
 
+    # Add content to vector store
     vector_store.add_texts(texts)
-    vector_store.save_store()
+    vector_store.save()  # Ensure you save the updated vector store
 
     return UploadResponse(message="PDF uploaded and content extracted successfully.", filename=file.filename)
 
@@ -93,7 +98,7 @@ async def query_pdf(request: QueryRequest):
 
     # Generate answer using LLM
     try:
-        answer =  query_handler.handle_query(query)
+        answer = query_handler.handle_query(query)
         if not answer:
             raise HTTPException(status_code=500, detail="No answer generated.")
         logging.debug(f"Generated answer for query '{query}': {answer}")
@@ -102,6 +107,7 @@ async def query_pdf(request: QueryRequest):
         raise HTTPException(status_code=500, detail=f"Error generating answer: {e}")
 
     return QueryResponse(answer=answer)
+
 
 
 
