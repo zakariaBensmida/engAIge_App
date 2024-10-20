@@ -17,7 +17,7 @@ templates = Jinja2Templates(directory="templates")
 
 # Get the model names and paths from the environment variables
 llm_model_name = os.getenv('LLM_MODEL_NAME', 'bigscience/bloom-560m')
-vector_store_path = os.getenv('VECTOR_STORE_PATH', 'C:\\Users\\zakar\\engAIge_App\\App\\vector_store.faiss')
+vector_store_path = os.getenv('VECTOR_STORE_PATH', 'C:\\Users\\zakar\\engAIge_App\\App')
 
 # Create an instance of the LLM class with the model name from the environment
 llm_instance = LLM(model_name=llm_model_name)
