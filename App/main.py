@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-from query_handler import QueryHandler  # Ensure this import matches your file structure
+from .query_handler import QueryHandler  # Ensure this import matches your file structure
 
 app = FastAPI()
 
