@@ -7,7 +7,7 @@ from pydantic import BaseModel
 app = FastAPI()
 
 # Adjust the path to your templates directory
-templates = Jinja2Templates(directory="../templates")  # Go one level up to access the templates folder
+templates = Jinja2Templates(directory="./templates")  # Go one level up to access the templates folder
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
