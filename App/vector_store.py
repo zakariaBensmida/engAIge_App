@@ -3,42 +3,42 @@ import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
 
-class VectorStore:
-    def __init__(self, vector_store_path: str, model_name: str):
-        self.vector_store_path = vector_store_path
-        self.model = SentenceTransformer(model_name)
+# vector_store.py
+from sentence_transformers import SentenceTransformer
+import faiss
+import numpy as np
+import os
 
-        # Check if the vector store file exists; if not, initialize an empty index
+class VectorStore:
+    def __init__(self, vector_store_path: str, embedding_model_name: str):
+        self.vector_store_path = vector_store_path
+        self.model = SentenceTransformer(embedding_model_name)
+        self.index = None
+        self.texts = []
+
+        # Load existing index if it exists
         if os.path.exists(self.vector_store_path):
-            self.index = faiss.read_index(self.vector_store_path)
-        else:
-            self.index = None
-            self.documents = []  # To hold the documents for indexing
+            self.load()
 
     def add_texts(self, texts):
-        """Generate embeddings for the provided texts and add them to the FAISS index."""
-        embeddings = self.model.encode(texts)  # Generate embeddings
+        embeddings = self.model.encode(texts)
         if self.index is None:
-            self.documents.extend(texts)  # Store texts if index is not created yet
-            self.index = faiss.IndexFlatL2(embeddings.shape[1])  # Initialize FAISS index
+            self.index = faiss.IndexFlatL2(embeddings.shape[1])  # Initialize the FAISS index
+        self.index.add(embeddings)  # Add embeddings to the index
+        self.texts.extend(texts)  # Store texts for retrieval
+        self.save()  # Save the updated index
 
-        # Add embeddings to the index
-        self.index.add(embeddings.astype(np.float32))
-        
-        # Save the updated index
-        self.save_vector_store()
+    def save(self):
+        faiss.write_index(self.index, self.vector_store_path)  # Save the index to disk
 
-    def save_vector_store(self):
-        """Saves the FAISS index to the specified file path."""
-        faiss.write_index(self.index, self.vector_store_path)
+    def load(self):
+        self.index = faiss.read_index(self.vector_store_path)  # Load index from disk
+        # You may also want to load the texts if they are stored separately
 
-    def retrieve(self, query: str, top_k: int = 5):
-        """Retrieve the top K relevant documents for the given query."""
-        query_embedding = self.model.encode([query]).astype(np.float32)  # Encode the query
-        distances, indices = self.index.search(query_embedding, top_k)  # Search the index
-
-        # Retrieve the documents based on indices
-        return [{"text": self.documents[i], "distance": distances[0][j]} for j, i in enumerate(indices[0]) if i < len(self.documents)]
+    def retrieve(self, query, k=5):
+        query_embedding = self.model.encode([query])
+        distances, indices = self.index.search(query_embedding, k)  # Search for nearest neighbors
+        return [{"text": self.texts[i]} for i in indices[0]]  # Return the relevant texts
 
 if __name__ == "__main__":
     # Load environment variables
