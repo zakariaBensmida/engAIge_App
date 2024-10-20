@@ -1,5 +1,5 @@
-from .vector_store import VectorStore
-from .llm import LLM
+from vector_store import VectorStore
+from llm import LLM
 
 class QueryHandler:
     def __init__(self):
