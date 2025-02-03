@@ -1,117 +1,31 @@
-
-import logging
-import os
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
-from fastapi.responses import JSONResponse
-from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
-from .pdf_extractor import extract_text_from_pdf
-from .vector_store import VectorStore
-from .query_handler import QueryHandler
-from .config import get_llm, get_embeddings
-from .utils import ensure_directory
-
-# Enable debug logging
-logging.basicConfig(level=logging.DEBUG)
+# main.py - FastAPI Entry Point
+from fastapi import FastAPI, WebSocket
+from fastapi.staticfiles import StaticFiles
+from backend.query_handler import get_response
+from backend.document_loader import load_documents
+from backend.vector_manager import create_vector_store, embed_documents
 
 app = FastAPI()
 
-# Set up the templates directory
-templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "../templates"))
+app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
-# Initialize LLM and embeddings
-llm = get_llm()
-embeddings = get_embeddings()
+documents = load_documents("data/")  # Load web-scraped docs on startup
+embeddings = embed_documents(documents)
+vector_store = create_vector_store(embeddings)
 
-# Ensure PDF storage directory exists
-pdf_storage_path = os.getenv("PDF_STORAGE_PATH")
-ensure_directory(pdf_storage_path)
+def stream_response(query: str):
+    for chunk in get_response(query, documents):
+        yield chunk
 
-# Initialize VectorStore
-vector_store = VectorStore(
-    store_path=os.getenv("VECTOR_STORE_PATH", "./vector_store/index.faiss"),
-    embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "distiluse-base-multilingual-cased-v2")
-)
+@app.websocket("/chat")
+async def websocket_chat(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        query = await websocket.receive_text()
+        async for response_chunk in stream_response(query):
+            await websocket.send_text(response_chunk)
 
-# Define Pydantic models
-class UploadResponse(BaseModel):
-    message: str
-    filename: str
-
-class QueryRequest(BaseModel):
-    query: str
-
-class QueryResponse(BaseModel):
-    answer: str
-
-# Initialize QueryHandler
-query_handler = QueryHandler(vector_store=vector_store, llm=llm)
-
-@app.get("/")
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-@app.post("/upload", response_model=UploadResponse)
-async def upload_pdf(file: UploadFile = File(...)):
-    if not file.filename.endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
-
-    file_location = os.path.join(pdf_storage_path, file.filename)
-    
-    try:
-        with open(file_location, "wb") as f:
-            f.write(await file.read())
-    except Exception as e:
-        logging.error(f"Error saving PDF file: {e}")
-        raise HTTPException(status_code=500, detail=f"Error saving PDF file: {e}")
-
-    logging.debug(f"PDF saved at: {file_location}")
-
-    # Extract main content from PDF
-    try:
-        content_dict = extract_text_from_pdf(file_location)
-        logging.debug(f"Extracted content dictionary: {content_dict}")
-    except Exception as e:
-        logging.error(f"Error extracting PDF content: {e}")
-        raise HTTPException(status_code=500, detail=f"Error extracting PDF content: {e}")
-
-    # Flatten the extracted paragraphs into a list of texts
-    texts = []
-    for paragraphs in content_dict.values():
-        texts.extend(paragraphs)  # Add each paragraph to the texts list
-
-    logging.debug(f"Number of texts to add: {len(texts)}")
-
-    # Add content to vector store
-    vector_store.add_texts(texts)
-    vector_store.save()  # Ensure you save the updated vector store
-
-    return UploadResponse(message="PDF uploaded and content extracted successfully.", filename=file.filename)
-
-@app.post("/query", response_model=QueryResponse)
-async def query_pdf(request: QueryRequest):
-    query = request.query
-    if not query:
-        raise HTTPException(status_code=400, detail="Query cannot be empty.")
-
-    logging.debug(f"Query received: {query}")
-
-    # Generate answer using LLM
-    try:
-        answer = query_handler.handle_query(query)
-        if not answer:
-            raise HTTPException(status_code=500, detail="No answer generated.")
-        logging.debug(f"Generated answer for query '{query}': {answer}")
-    except Exception as e:
-        logging.error(f"Error generating answer: {e}")
-        raise HTTPException(status_code=500, detail=f"Error generating answer: {e}")
-
-    return QueryResponse(answer=answer)
-
-
-
-
-
+# Run with: uvicorn main:app --reload
 
 
 
