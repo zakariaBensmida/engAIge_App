@@ -1,1 +1,8 @@
-
+# requirements.txt - Dependencies
+fastapi
+uvicorn
+langchain
+transformers
+sentence-transformers
+faiss-cpu
+pytest
