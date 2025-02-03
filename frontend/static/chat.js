@@ -6,3 +6,8 @@ document.getElementById("sendBtn").addEventListener("click", () => {
     socket.send(input);
     document.getElementById("chatInput").value = "";
 });
+
+socket.onmessage = (event) => {
+    let chatBox = document.getElementById("chatBox");
+    chatBox.innerHTML += `<p>${event.data}</p>`;
+};
