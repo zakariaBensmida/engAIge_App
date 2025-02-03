@@ -9,7 +9,7 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
-documents = load_documents("data/")  # Load web-scraped docs on startup
+documents = load_documents("pdfs/")  # Load web-scraped docs on startup
 embeddings = embed_documents(documents)
 vector_store = create_vector_store(embeddings)
 
