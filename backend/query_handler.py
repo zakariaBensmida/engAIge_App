@@ -7,3 +7,4 @@ def get_response(query: str, documents: list, llm):
         print(f"Streaming chunk: {chunk['generated_text']}")  # Debugging output
         yield chunk['generated_text']
 
+
