@@ -5,6 +5,8 @@ from backend.query_handler import get_response
 from backend.document_loader import load_documents
 from backend.vector_manager import create_vector_store, embed_documents
 from backend.models.llm import load_llm
+from fastapi.responses import FileResponse
+import os
 
 app = FastAPI()
 
@@ -18,7 +20,9 @@ llm = load_llm()
 def stream_response(query: str):
     for chunk in get_response(query, documents, llm):
         yield chunk
-
+@app.get("/")
+async def serve_frontend():
+    return FileResponse(os.path.join("frontend", "index.html"))
 @app.websocket("/chat")
 async def websocket_chat(websocket: WebSocket):
     await websocket.accept()
