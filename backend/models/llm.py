@@ -3,7 +3,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 def load_llm():
-    model_path = "mistralai/Mistral-7B-Instruct"
+    model_path = "HuggingFaceH4/zephyr-7b-alpha"
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
