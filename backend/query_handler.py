@@ -1,11 +1,9 @@
-# backend/query_handler.py - Handles user queries
-def get_response(query: str, documents: list):
-    from langchain.llms import HuggingFacePipeline
-    from transformers import pipeline
-    
-    llm_pipeline = pipeline("text-generation", model="mistralai/Mistral-7B-Instruct")
-    llm = HuggingFacePipeline(pipeline=llm_pipeline)
-    
+def get_response(query: str, documents: list, llm):
+    print(f"Received query: {query}")  # Debugging output
     response = llm(query)
+    print(f"LLM raw response: {response}")  # Debugging output
+
     for chunk in response:
+        print(f"Streaming chunk: {chunk['generated_text']}")  # Debugging output
         yield chunk['generated_text']
+
