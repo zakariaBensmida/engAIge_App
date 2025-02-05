@@ -28,7 +28,11 @@ async def websocket_chat(websocket: WebSocket):
     await websocket.accept()
     while True:
         query = await websocket.receive_text()
+        print(f"WebSocket received query: {query}")  # Debugging
+
         async for response_chunk in stream_response(query):
+            print(f"Sending response chunk: {response_chunk}")  # Debugging
             await websocket.send_text(response_chunk)
+
 
 # Run with: uvicorn main:app --reload
