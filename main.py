@@ -1,0 +1,38 @@
+# main.py - FastAPI Entry Point
+from fastapi import FastAPI, WebSocket
+from fastapi.staticfiles import StaticFiles
+from backend.query_handler import get_response
+from backend.document_loader import load_documents
+from backend.vector_manager import create_vector_store, embed_documents
+from backend.models.llm import load_llm
+from fastapi.responses import FileResponse
+import os
+
+app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
+
+documents = load_documents("Data/")  # Load web-scraped docs on startup
+embeddings = embed_documents(documents)
+vector_store = create_vector_store(embeddings)
+llm = load_llm()
+
+def stream_response(query: str):
+    for chunk in get_response(query, documents, llm):
+        yield chunk
+@app.get("/")
+async def serve_frontend():
+    return FileResponse(os.path.join("frontend", "index.html"))
+@app.websocket("/chat")
+async def websocket_chat(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        query = await websocket.receive_text()
+        print(f"WebSocket received query: {query}")  # Debugging
+
+        async for response_chunk in stream_response(query):
+            print(f"Sending response chunk: {response_chunk}")  # Debugging
+            await websocket.send_text(response_chunk)
+
+
+# Run with: uvicorn main:app --reload
